@@ -11,7 +11,7 @@ return [
     | environment. Set to "sandbox" for testing, "production" for live.
     |
     */
-    'environment' => env('BtiPay_ENVIRONMENT', 'sandbox'),
+    'environment' => env('BTIPAY_ENVIRONMENT', 'sandbox'),
 
     /*
     |--------------------------------------------------------------------------
@@ -22,8 +22,8 @@ return [
     | These are different from the GUI (console) credentials.
     |
     */
-    'username' => env('BtiPay_USERNAME', ''),
-    'password' => env('BtiPay_PASSWORD', ''),
+    'username' => env('BTIPAY_USERNAME', ''),
+    'password' => env('BTIPAY_PASSWORD', ''),
 
     /*
     |--------------------------------------------------------------------------
@@ -35,7 +35,7 @@ return [
     | "body"   - Username/password in request body (legacy, not recommended)
     |
     */
-    'auth_method' => env('BtiPay_AUTH_METHOD', 'header'),
+    'auth_method' => env('BTIPAY_AUTH_METHOD', 'header'),
 
     /*
     |--------------------------------------------------------------------------
@@ -60,7 +60,7 @@ return [
     | or failing a payment. Can be overridden per transaction.
     |
     */
-    'return_url' => env('BtiPay_RETURN_URL', ''),
+    'return_url' => env('BTIPAY_RETURN_URL', ''),
 
     /*
     |--------------------------------------------------------------------------
@@ -71,7 +71,7 @@ return [
     | 946 = RON, 978 = EUR, 840 = USD
     |
     */
-    'currency' => env('BtiPay_CURRENCY', 946),
+    'currency' => env('BTIPAY_CURRENCY', 946),
 
     /*
     |--------------------------------------------------------------------------
@@ -82,7 +82,7 @@ return [
     | Example: "ro", "en"
     |
     */
-    'language' => env('BtiPay_LANGUAGE', 'ro'),
+    'language' => env('BTIPAY_LANGUAGE', 'ro'),
 
     /*
     |--------------------------------------------------------------------------
@@ -93,7 +93,7 @@ return [
     | "DESKTOP" or "MOBILE"
     |
     */
-    'page_view' => env('BtiPay_PAGE_VIEW', 'DESKTOP'),
+    'page_view' => env('BTIPAY_PAGE_VIEW', 'DESKTOP'),
 
     /*
     |--------------------------------------------------------------------------
@@ -105,7 +105,7 @@ return [
     | "2phase" - Pre-authorization (requires manual deposit)
     |
     */
-    'payment_type' => env('BtiPay_PAYMENT_TYPE', '1phase'),
+    'payment_type' => env('BTIPAY_PAYMENT_TYPE', '1phase'),
 
     /*
     |--------------------------------------------------------------------------
@@ -116,9 +116,9 @@ return [
     |
     */
     'http' => [
-        'timeout'         => env('BtiPay_HTTP_TIMEOUT', 30),
-        'connect_timeout' => env('BtiPay_HTTP_CONNECT_TIMEOUT', 10),
-        'verify_ssl'      => env('BtiPay_VERIFY_SSL', true),
+        'timeout'         => env('BTIPAY_HTTP_TIMEOUT', 30),
+        'connect_timeout' => env('BTIPAY_HTTP_CONNECT_TIMEOUT', 10),
+        'verify_ssl'      => env('BTIPAY_VERIFY_SSL', true),
     ],
 
     /*
@@ -131,8 +131,8 @@ return [
     |
     */
     'logging' => [
-        'enabled' => env('BtiPay_LOGGING', false),
-        'channel' => env('BtiPay_LOG_CHANNEL', 'stack'),
+        'enabled' => env('BTIPAY_LOGGING', false),
+        'channel' => env('BTIPAY_LOG_CHANNEL', 'stack'),
     ],
 
 ];

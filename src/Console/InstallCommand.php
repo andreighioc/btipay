@@ -77,9 +77,9 @@ class InstallCommand extends Command
         $this->info('');
         $this->line('  <fg=yellow>Next steps:</>');
         $this->line('  1. Set your credentials in <fg=cyan>.env</>:');
-        $this->line('     BtiPay_USERNAME=your_api_user');
-        $this->line('     BtiPay_PASSWORD=your_api_password');
-        $this->line('     BtiPay_RETURN_URL=https://your-site.ro/BtiPay/finish');
+        $this->line('     BTIPAY_USERNAME=your_api_user');
+        $this->line('     BTIPAY_PASSWORD=your_api_password');
+        $this->line('     BTIPAY_RETURN_URL=https://your-site.ro/BtiPay/finish');
         $this->line('  2. Run <fg=cyan>php artisan migrate</>');
         $this->line('  3. Include the routes in your app (see routes/BtiPay.php)');
         $this->line('  4. Customize the controller and views as needed');

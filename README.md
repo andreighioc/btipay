@@ -63,15 +63,15 @@ Or in `bootstrap/app.php` (Laravel 11+):
 Add to your `.env`:
 
 ```env
-BtiPay_ENVIRONMENT=sandbox
-BtiPay_USERNAME=your_api_username
-BtiPay_PASSWORD=your_api_password
-BtiPay_AUTH_METHOD=header
-BtiPay_RETURN_URL=https://your-site.com/BtiPay/finish
-BtiPay_CURRENCY=946
-BtiPay_LANGUAGE=ro
-BtiPay_PAYMENT_TYPE=1phase
-BtiPay_LOGGING=true
+BTIPAY_ENVIRONMENT=sandbox
+BTIPAY_USERNAME=your_api_username
+BTIPAY_PASSWORD=your_api_password
+BTIPAY_AUTH_METHOD=header
+BTIPAY_RETURN_URL=https://your-site.com/BtiPay/finish
+BTIPAY_CURRENCY=946
+BTIPAY_LANGUAGE=ro
+BTIPAY_PAYMENT_TYPE=1phase
+BTIPAY_LOGGING=true
 ```
 
 ### Available Environments
