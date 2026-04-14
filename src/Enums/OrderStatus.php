@@ -1,6 +1,6 @@
 <?php
 
-namespace BtIpay\Laravel\Enums;
+namespace AndreiGhioc\BtiPay\Enums;
 
 /**
  * Order status values returned by getOrderStatusExtended.do

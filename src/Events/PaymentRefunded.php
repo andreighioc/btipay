@@ -1,8 +1,8 @@
 <?php
 
-namespace BtIpay\Laravel\Events;
+namespace AndreiGhioc\BtiPay\Events;
 
-use BtIpay\Laravel\Models\BtIpayTransaction;
+use AndreiGhioc\BtiPay\Models\BtiPayTransaction;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 
@@ -11,7 +11,7 @@ class PaymentRefunded
     use Dispatchable, SerializesModels;
 
     public function __construct(
-        public BtIpayTransaction $transaction,
+        public BtiPayTransaction $transaction,
         public int $refundedAmount,
         public bool $isPartial
     ) {}

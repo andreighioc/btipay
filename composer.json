@@ -1,6 +1,6 @@
 {
-    "name": "btipay/laravel",
-    "description": "Laravel package for Banca Transilvania iPay payment processing - supports 1-Phase and 2-Phase payments, refunds, reversals, and order status queries.",
+    "name": "andreighioc/BtiPay",
+    "description": "Banca Transilvania Payment Gateway for Laravel",
     "keywords": [
         "banca-transilvania",
         "bt",
@@ -30,21 +30,21 @@
     },
     "autoload": {
         "psr-4": {
-            "BtIpay\\Laravel\\": "src/"
+            "AndreiGhioc\\BtiPay\\": "src/"
         }
     },
     "autoload-dev": {
         "psr-4": {
-            "BtIpay\\Laravel\\Tests\\": "tests/"
+            "AndreiGhioc\\BtiPay\\Tests\\": "tests/"
         }
     },
     "extra": {
         "laravel": {
             "providers": [
-                "BtIpay\\Laravel\\BtIpayServiceProvider"
+                "AndreiGhioc\\BtiPay\\BtiPayServiceProvider"
             ],
             "aliases": {
-                "BtIpay": "BtIpay\\Laravel\\Facades\\BtIpay"
+                "BtiPay": "AndreiGhioc\\BtiPay\\Facades\\BtiPay"
             }
         }
     },

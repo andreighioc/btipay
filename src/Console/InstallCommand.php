@@ -1,6 +1,6 @@
 <?php
 
-namespace BtIpay\Laravel\Console;
+namespace AndreiGhioc\BtiPay\Console;
 
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\File;
@@ -10,7 +10,7 @@ class InstallCommand extends Command
     /**
      * The name and signature of the console command.
      */
-    protected $signature = 'btipay:install
+    protected $signature = 'BtiPay:install
                             {--force : Overwrite existing files}
                             {--controller : Publish only the controller}
                             {--routes : Publish only the routes}
@@ -42,16 +42,16 @@ class InstallCommand extends Command
         // 1. Config
         if ($publishAll) {
             $this->callSilently('vendor:publish', [
-                '--tag'   => 'btipay-config',
+                '--tag'   => 'BtiPay-config',
                 '--force' => $force,
             ]);
-            $this->components->info('Config [config/btipay.php] published.');
+            $this->components->info('Config [config/BtiPay.php] published.');
         }
 
         // 2. Migrations
         if ($publishAll) {
             $this->callSilently('vendor:publish', [
-                '--tag'   => 'btipay-migrations',
+                '--tag'   => 'BtiPay-migrations',
                 '--force' => $force,
             ]);
             $this->components->info('Migrations published.');
@@ -77,11 +77,11 @@ class InstallCommand extends Command
         $this->info('');
         $this->line('  <fg=yellow>Next steps:</>');
         $this->line('  1. Set your credentials in <fg=cyan>.env</>:');
-        $this->line('     BTIPAY_USERNAME=your_api_user');
-        $this->line('     BTIPAY_PASSWORD=your_api_password');
-        $this->line('     BTIPAY_RETURN_URL=https://your-site.ro/btipay/finish');
+        $this->line('     BtiPay_USERNAME=your_api_user');
+        $this->line('     BtiPay_PASSWORD=your_api_password');
+        $this->line('     BtiPay_RETURN_URL=https://your-site.ro/BtiPay/finish');
         $this->line('  2. Run <fg=cyan>php artisan migrate</>');
-        $this->line('  3. Include the routes in your app (see routes/btipay.php)');
+        $this->line('  3. Include the routes in your app (see routes/BtiPay.php)');
         $this->line('  4. Customize the controller and views as needed');
         $this->info('');
 
@@ -93,8 +93,8 @@ class InstallCommand extends Command
      */
     protected function publishController(bool $force): void
     {
-        $stubPath = __DIR__ . '/../../stubs/BtIpayController.php.stub';
-        $targetPath = app_path('Http/Controllers/BtIpayController.php');
+        $stubPath = __DIR__ . '/../../stubs/BtiPayController.php.stub';
+        $targetPath = app_path('Http/Controllers/BtiPayController.php');
 
         if (File::exists($targetPath) && ! $force) {
             $this->components->warn('Controller already exists. Use --force to overwrite.');
@@ -105,7 +105,7 @@ class InstallCommand extends Command
         File::ensureDirectoryExists(app_path('Http/Controllers'));
         File::copy($stubPath, $targetPath);
 
-        $this->components->info('Controller [app/Http/Controllers/BtIpayController.php] created.');
+        $this->components->info('Controller [app/Http/Controllers/BtiPayController.php] created.');
     }
 
     /**
@@ -113,8 +113,8 @@ class InstallCommand extends Command
      */
     protected function publishRoutes(bool $force): void
     {
-        $stubPath = __DIR__ . '/../../stubs/btipay-routes.php.stub';
-        $targetPath = base_path('routes/btipay.php');
+        $stubPath = __DIR__ . '/../../stubs/BtiPay-routes.php.stub';
+        $targetPath = base_path('routes/BtiPay.php');
 
         if (File::exists($targetPath) && ! $force) {
             $this->components->warn('Routes file already exists. Use --force to overwrite.');
@@ -125,19 +125,19 @@ class InstallCommand extends Command
         File::ensureDirectoryExists(base_path('routes'));
         File::copy($stubPath, $targetPath);
 
-        $this->components->info('Routes [routes/btipay.php] created.');
+        $this->components->info('Routes [routes/BtiPay.php] created.');
         $this->line('');
         $this->line('  <fg=yellow>Register the routes</> in <fg=cyan>bootstrap/app.php</> (Laravel 11+):');
         $this->line('');
         $this->line("    ->withRouting(");
         $this->line("        web: __DIR__.'/../routes/web.php',");
         $this->line("        then: function () {");
-        $this->line("            require base_path('routes/btipay.php');");
+        $this->line("            require base_path('routes/BtiPay.php');");
         $this->line("        },");
         $this->line("    )");
         $this->line('');
         $this->line('  Or in <fg=cyan>routes/web.php</> add:');
-        $this->line("    require __DIR__.'/btipay.php';");
+        $this->line("    require __DIR__.'/BtiPay.php';");
     }
 
     /**
@@ -146,7 +146,7 @@ class InstallCommand extends Command
     protected function publishViews(bool $force): void
     {
         $stubsDir = __DIR__ . '/../../stubs/views';
-        $targetDir = resource_path('views/btipay');
+        $targetDir = resource_path('views/BtiPay');
 
         if (File::isDirectory($targetDir) && ! $force) {
             $this->components->warn('Views directory already exists. Use --force to overwrite.');
@@ -162,6 +162,6 @@ class InstallCommand extends Command
             File::copy("{$stubsDir}/{$view}.stub", "{$targetDir}/{$view}");
         }
 
-        $this->components->info('Views [resources/views/btipay/] created.');
+        $this->components->info('Views [resources/views/BtiPay/] created.');
     }
 }

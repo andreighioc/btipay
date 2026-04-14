@@ -1,6 +1,6 @@
 <?php
 
-namespace BtIpay\Laravel\Enums;
+namespace AndreiGhioc\BtiPay\Enums;
 
 /**
  * Payment type supported by BT iPay.

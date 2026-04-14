@@ -1,6 +1,6 @@
 <?php
 
-namespace BtIpay\Laravel\Enums;
+namespace AndreiGhioc\BtiPay\Enums;
 
 /**
  * Currency codes supported by BT iPay (ISO 4217 numeric).

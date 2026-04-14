@@ -1,24 +1,32 @@
 <?php
 
-namespace BtIpay\Laravel;
+namespace AndreiGhioc\BtiPay;
 
-use BtIpay\Laravel\Enums\Currency;
-use BtIpay\Laravel\Enums\OrderStatus;
-use BtIpay\Laravel\Responses\RegisterResponse;
-use BtIpay\Laravel\Responses\DepositResponse;
-use BtIpay\Laravel\Responses\ReverseResponse;
-use BtIpay\Laravel\Responses\RefundResponse;
-use BtIpay\Laravel\Responses\OrderStatusResponse;
-use BtIpay\Laravel\Responses\FinishedPaymentInfoResponse;
-use BtIpay\Laravel\Exceptions\BtIpayValidationException;
+use AndreiGhioc\BtiPay\Enums\Currency;
+use AndreiGhioc\BtiPay\Enums\OrderStatus;
+use AndreiGhioc\BtiPay\Responses\RegisterResponse;
+use AndreiGhioc\BtiPay\Responses\DepositResponse;
+use AndreiGhioc\BtiPay\Responses\ReverseResponse;
+use AndreiGhioc\BtiPay\Responses\RefundResponse;
+use AndreiGhioc\BtiPay\Responses\OrderStatusResponse;
+use AndreiGhioc\BtiPay\Responses\FinishedPaymentInfoResponse;
+use AndreiGhioc\BtiPay\Exceptions\BtiPayValidationException;
 
-class BtIpayGateway
+class BtiPay
 {
-    protected BtIpayClient $client;
+    protected BtiPayClient $client;
+    protected array $config;
 
-    public function __construct(BtIpayClient $client)
+    public function __construct(array $config = [])
     {
-        $this->client = $client;
+        $this->config = $config;
+        $this->client = new BtiPayClient(
+            $config['username'] ?? '',
+            $config['password'] ?? '',
+            $config['environment'] ?? 'sandbox',
+            $config['auth_method'] ?? 'header',
+            $config['http'] ?? []
+        );
     }
 
     /**
@@ -28,14 +36,14 @@ class BtIpayGateway
      * @param  array $params Required: orderNumber, amount. Optional: currency, returnUrl, description, etc.
      * @return RegisterResponse
      *
-     * @throws BtIpayValidationException
+     * @throws BtiPayValidationException
      */
     public function register(array $params): RegisterResponse
     {
         $this->validateRegisterParams($params);
         $requestData = $this->buildRegisterParams($params);
 
-        $response = $this->client->post(BtIpayClient::ENDPOINT_REGISTER, $requestData);
+        $response = $this->client->post(BtiPayClient::ENDPOINT_REGISTER, $requestData);
 
         return new RegisterResponse($response);
     }
@@ -47,14 +55,14 @@ class BtIpayGateway
      * @param  array $params Required: orderNumber, amount. Optional: currency, returnUrl, description, etc.
      * @return RegisterResponse
      *
-     * @throws BtIpayValidationException
+     * @throws BtiPayValidationException
      */
     public function registerPreAuth(array $params): RegisterResponse
     {
         $this->validateRegisterParams($params);
         $requestData = $this->buildRegisterParams($params);
 
-        $response = $this->client->post(BtIpayClient::ENDPOINT_REGISTER_PRE_AUTH, $requestData);
+        $response = $this->client->post(BtiPayClient::ENDPOINT_REGISTER_PRE_AUTH, $requestData);
 
         return new RegisterResponse($response);
     }
@@ -79,7 +87,7 @@ class BtIpayGateway
             $params['depositLoyalty'] = 'true';
         }
 
-        $response = $this->client->post(BtIpayClient::ENDPOINT_DEPOSIT, $params);
+        $response = $this->client->post(BtiPayClient::ENDPOINT_DEPOSIT, $params);
 
         return new DepositResponse($response);
     }
@@ -102,7 +110,7 @@ class BtIpayGateway
             $params['reverseLoyalty'] = 'true';
         }
 
-        $response = $this->client->post(BtIpayClient::ENDPOINT_REVERSE, $params);
+        $response = $this->client->post(BtiPayClient::ENDPOINT_REVERSE, $params);
 
         return new ReverseResponse($response);
     }
@@ -127,7 +135,7 @@ class BtIpayGateway
             $params['refundLoyalty'] = 'true';
         }
 
-        $response = $this->client->post(BtIpayClient::ENDPOINT_REFUND, $params);
+        $response = $this->client->post(BtiPayClient::ENDPOINT_REFUND, $params);
 
         return new RefundResponse($response);
     }
@@ -140,7 +148,7 @@ class BtIpayGateway
      * @param  bool        $includeCardArt Include card art in response
      * @return OrderStatusResponse
      *
-     * @throws BtIpayValidationException
+     * @throws BtiPayValidationException
      */
     public function getOrderStatus(
         ?string $orderId = null,
@@ -148,7 +156,7 @@ class BtIpayGateway
         bool $includeCardArt = false
     ): OrderStatusResponse {
         if (empty($orderId) && empty($orderNumber)) {
-            throw new BtIpayValidationException(
+            throw new BtiPayValidationException(
                 'Either orderId or orderNumber must be provided.'
             );
         }
@@ -167,7 +175,7 @@ class BtIpayGateway
             $params['includeCardArt'] = 'true';
         }
 
-        $response = $this->client->post(BtIpayClient::ENDPOINT_ORDER_STATUS, $params);
+        $response = $this->client->post(BtiPayClient::ENDPOINT_ORDER_STATUS, $params);
 
         return new OrderStatusResponse($response);
     }
@@ -196,7 +204,7 @@ class BtIpayGateway
         }
 
         $response = $this->client->post(
-            BtIpayClient::ENDPOINT_FINISHED_PAYMENT_INFO,
+            BtiPayClient::ENDPOINT_FINISHED_PAYMENT_INFO,
             $params,
             false // This endpoint does not require authentication
         );
@@ -213,7 +221,7 @@ class BtIpayGateway
      * @param  array       $options     Additional options (description, email, orderBundle, etc.)
      * @return string The payment form URL to redirect the customer to
      *
-     * @throws BtIpayValidationException
+     * @throws BtiPayValidationException
      */
     public function getPaymentUrl(
         string $orderNumber,
@@ -237,7 +245,7 @@ class BtIpayGateway
             : $this->register($params);
 
         if (! $response->isSuccessful()) {
-            throw new BtIpayValidationException(
+            throw new BtiPayValidationException(
                 'Payment registration failed: ' . $response->getErrorMessage()
             );
         }
@@ -248,22 +256,22 @@ class BtIpayGateway
     /**
      * Validate required params for register/registerPreAuth.
      *
-     * @throws BtIpayValidationException
+     * @throws BtiPayValidationException
      */
     protected function validateRegisterParams(array $params): void
     {
         if (empty($params['orderNumber'])) {
-            throw new BtIpayValidationException('orderNumber is required.');
+            throw new BtiPayValidationException('orderNumber is required.');
         }
 
         if (! isset($params['amount']) || $params['amount'] <= 0) {
-            throw new BtIpayValidationException('amount must be a positive integer (in minor currency units).');
+            throw new BtiPayValidationException('amount must be a positive integer (in minor currency units).');
         }
 
         $returnUrl = $params['returnUrl'] ?? config('btipay.return_url');
         if (empty($returnUrl)) {
-            throw new BtIpayValidationException(
-                'returnUrl is required. Set it in the request params or in btipay.return_url config.'
+            throw new BtiPayValidationException(
+                'returnUrl is required. Set it in the request params or in BtiPay.return_url config.'
             );
         }
     }

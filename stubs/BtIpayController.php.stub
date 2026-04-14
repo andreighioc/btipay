@@ -5,22 +5,22 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
-use BtIpay\Laravel\Facades\BtIpay;
-use BtIpay\Laravel\Builders\OrderBundle;
-use BtIpay\Laravel\Models\BtIpayTransaction;
-use BtIpay\Laravel\Responses\ActionCodeMessages;
-use BtIpay\Laravel\Events\PaymentRegistered;
-use BtIpay\Laravel\Events\PaymentCompleted;
-use BtIpay\Laravel\Events\PaymentDeclined;
+use BtiPay\Laravel\Facades\BtiPay;
+use BtiPay\Laravel\Builders\OrderBundle;
+use BtiPay\Laravel\Models\BtiPayTransaction;
+use BtiPay\Laravel\Responses\ActionCodeMessages;
+use BtiPay\Laravel\Events\PaymentRegistered;
+use BtiPay\Laravel\Events\PaymentCompleted;
+use BtiPay\Laravel\Events\PaymentDeclined;
 
-class BtIpayController extends Controller
+class BtiPayController extends Controller
 {
     /**
      * Display the payment form / initiate payment.
      *
      * Example usage from another part of the application:
      *
-     *   return redirect()->route('btipay.pay', [
+     *   return redirect()->route('BtiPay.pay', [
      *       'order_number' => 'CMD-123',
      *       'amount'       => 1500,       // 15.00 RON (in minor units)
      *       'description'  => 'Order #123',
@@ -30,7 +30,7 @@ class BtIpayController extends Controller
      */
     public function pay(Request $request): View
     {
-        return view('btipay.pay', [
+        return view('BtiPay.pay', [
             'orderNumber' => $request->get('order_number', 'CMD-' . time()),
             'amount'      => $request->get('amount', 0),
             'description' => $request->get('description', ''),
@@ -78,7 +78,7 @@ class BtIpayController extends Controller
         $params = [
             'orderNumber' => $orderNumber,
             'amount'      => $amount,
-            'returnUrl'   => route('btipay.finish'),
+            'returnUrl'   => route('BtiPay.finish'),
             'description' => $description,
             'orderBundle' => $bundle->toArray(),
         ];
@@ -89,23 +89,23 @@ class BtIpayController extends Controller
 
         try {
             // Payment type is determined from config (1phase or 2phase)
-            $paymentType = config('btipay.payment_type', '1phase');
+            $paymentType = config('BtiPay.payment_type', '1phase');
 
             $response = $paymentType === '2phase'
-                ? BtIpay::registerPreAuth($params)
-                : BtIpay::register($params);
+                ? BtiPay::registerPreAuth($params)
+                : BtiPay::register($params);
 
             if ($response->isSuccessful()) {
                 // Save transaction to database
-                $transaction = BtIpayTransaction::create([
+                $transaction = BtiPayTransaction::create([
                     'order_id'              => $response->getOrderId(),
                     'order_number'          => $orderNumber,
                     'payment_type'          => $paymentType,
                     'amount'                => $amount,
-                    'currency'              => config('btipay.currency', '946'),
+                    'currency'              => config('BtiPay.currency', '946'),
                     'status'                => 'CREATED',
                     'form_url'              => $response->getFormUrl(),
-                    'return_url'            => route('btipay.finish'),
+                    'return_url'            => route('BtiPay.finish'),
                     'description'           => $description,
                     'customer_email'        => $email,
                     'customer_phone'        => $phone,
@@ -120,12 +120,12 @@ class BtIpayController extends Controller
             }
 
             // Order registration error
-            return redirect()->route('btipay.pay')
+            return redirect()->route('BtiPay.pay')
                 ->with('error', 'Payment initiation failed: ' . $response->getErrorMessage())
                 ->withInput();
 
         } catch (\Exception $e) {
-            return redirect()->route('btipay.pay')
+            return redirect()->route('BtiPay.pay')
                 ->with('error', 'Connection error: ' . $e->getMessage())
                 ->withInput();
         }
@@ -142,17 +142,17 @@ class BtIpayController extends Controller
         $orderId = $request->get('orderId');
 
         if (empty($orderId)) {
-            return view('btipay.finish', [
+            return view('BtiPay.finish', [
                 'success' => false,
                 'message' => 'Missing order ID.',
             ]);
         }
 
         try {
-            $status = BtIpay::getOrderStatus(orderId: $orderId);
+            $status = BtiPay::getOrderStatus(orderId: $orderId);
 
             // Update transaction in database
-            $transaction = BtIpayTransaction::where('order_id', $orderId)->first();
+            $transaction = BtiPayTransaction::where('order_id', $orderId)->first();
 
             if ($transaction) {
                 $transaction->update([
@@ -183,7 +183,7 @@ class BtIpayController extends Controller
                     PaymentCompleted::dispatch($transaction);
                 }
 
-                return view('btipay.finish', [
+                return view('BtiPay.finish', [
                     'success'      => true,
                     'message'      => 'Payment completed successfully!',
                     'orderNumber'  => $status->getOrderNumber(),
@@ -205,7 +205,7 @@ class BtIpayController extends Controller
                 PaymentDeclined::dispatch($transaction, $actionCode, $status->getActionCodeDescription());
             }
 
-            return view('btipay.finish', [
+            return view('BtiPay.finish', [
                 'success'     => false,
                 'message'     => $status->getActionCodeMessage() ?? 'Transaction declined, please try again.',
                 'canRetry'    => $canRetry,
@@ -215,7 +215,7 @@ class BtIpayController extends Controller
             ]);
 
         } catch (\Exception $e) {
-            return view('btipay.finish', [
+            return view('BtiPay.finish', [
                 'success' => false,
                 'message' => 'Error verifying payment: ' . $e->getMessage(),
             ]);

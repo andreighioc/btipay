@@ -1,15 +1,15 @@
 <?php
 
-namespace BtIpay\Laravel;
+namespace AndreiGhioc\BtiPay;
 
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\GuzzleException;
 use Illuminate\Support\Facades\Log;
-use BtIpay\Laravel\Exceptions\BtIpayException;
-use BtIpay\Laravel\Exceptions\BtIpayAuthenticationException;
-use BtIpay\Laravel\Exceptions\BtIpayConnectionException;
+use AndreiGhioc\BtiPay\Exceptions\BtiPayException;
+use AndreiGhioc\BtiPay\Exceptions\BtiPayAuthenticationException;
+use AndreiGhioc\BtiPay\Exceptions\BtiPayConnectionException;
 
-class BtIpayClient
+class BtiPayClient
 {
     protected Client $httpClient;
     protected string $username;
@@ -49,7 +49,7 @@ class BtIpayClient
         $this->environment = $environment;
         $this->authMethod  = $authMethod;
 
-        $customBaseUrls = config('btipay.base_urls', []);
+        $customBaseUrls = config('BtiPay.base_urls', []);
         $baseUrls = array_merge(self::BASE_URLS, $customBaseUrls);
         $this->baseUrl = $baseUrls[$environment] ?? self::BASE_URLS['sandbox'];
 
@@ -69,9 +69,9 @@ class BtIpayClient
      * @param  bool   $requiresAuth Whether the endpoint requires authentication
      * @return array  Decoded JSON response
      *
-     * @throws BtIpayException
-     * @throws BtIpayAuthenticationException
-     * @throws BtIpayConnectionException
+     * @throws BtiPayException
+     * @throws BtiPayAuthenticationException
+     * @throws BtiPayConnectionException
      */
     public function post(string $endpoint, array $params = [], bool $requiresAuth = true): array
     {
@@ -103,7 +103,7 @@ class BtIpayClient
             $decoded = json_decode($body, true);
 
             if (json_last_error() !== JSON_ERROR_NONE) {
-                throw new BtIpayException(
+                throw new BtiPayException(
                     'Invalid JSON response from BT iPay API: ' . json_last_error_msg()
                 );
             }
@@ -115,14 +115,14 @@ class BtIpayClient
             $this->logError($endpoint, $e->getMessage());
 
             if ($e->getCode() === 401 || $e->getCode() === 403) {
-                throw new BtIpayAuthenticationException(
+                throw new BtiPayAuthenticationException(
                     'Authentication failed: ' . $e->getMessage(),
                     $e->getCode(),
                     $e
                 );
             }
 
-            throw new BtIpayConnectionException(
+            throw new BtiPayConnectionException(
                 'Connection error to BT iPay API: ' . $e->getMessage(),
                 $e->getCode(),
                 $e
@@ -159,7 +159,7 @@ class BtIpayClient
      */
     protected function logRequest(string $endpoint, array $params): void
     {
-        if (! config('btipay.logging.enabled', false)) {
+        if (! config('BtiPay.logging.enabled', false)) {
             return;
         }
 
@@ -171,7 +171,7 @@ class BtIpayClient
             }
         }
 
-        Log::channel(config('btipay.logging.channel', 'stack'))
+        Log::channel(config('BtiPay.logging.channel', 'stack'))
             ->info('BT iPay Request', [
                 'endpoint' => $endpoint,
                 'params'   => $safeParams,
@@ -183,11 +183,11 @@ class BtIpayClient
      */
     protected function logResponse(string $endpoint, array $response): void
     {
-        if (! config('btipay.logging.enabled', false)) {
+        if (! config('BtiPay.logging.enabled', false)) {
             return;
         }
 
-        Log::channel(config('btipay.logging.channel', 'stack'))
+        Log::channel(config('BtiPay.logging.channel', 'stack'))
             ->info('BT iPay Response', [
                 'endpoint' => $endpoint,
                 'response' => $response,
@@ -199,11 +199,11 @@ class BtIpayClient
      */
     protected function logError(string $endpoint, string $message): void
     {
-        if (! config('btipay.logging.enabled', false)) {
+        if (! config('BtiPay.logging.enabled', false)) {
             return;
         }
 
-        Log::channel(config('btipay.logging.channel', 'stack'))
+        Log::channel(config('BtiPay.logging.channel', 'stack'))
             ->error('BT iPay Error', [
                 'endpoint' => $endpoint,
                 'message'  => $message,

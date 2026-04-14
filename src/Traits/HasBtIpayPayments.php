@@ -1,8 +1,8 @@
 <?php
 
-namespace BtIpay\Laravel\Traits;
+namespace AndreiGhioc\BtiPay\Traits;
 
-use BtIpay\Laravel\Models\BtIpayTransaction;
+use AndreiGhioc\BtiPay\Models\BtiPayTransaction;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 
 /**
@@ -11,45 +11,45 @@ use Illuminate\Database\Eloquent\Relations\MorphMany;
  * Usage:
  *   class Order extends Model
  *   {
- *       use HasBtIpayPayments;
+ *       use HasBtiPayPayments;
  *   }
  *
- *   $order->btipayTransactions; // all transactions
- *   $order->latestBtipayTransaction; // latest transaction
- *   $order->isPaidViaBtipay(); // check if paid
+ *   $order->BtiPayTransactions; // all transactions
+ *   $order->latestBtiPayTransaction; // latest transaction
+ *   $order->isPaidViaBtiPay(); // check if paid
  */
-trait HasBtIpayPayments
+trait HasBtiPayPayments
 {
     /**
      * Get all BT iPay transactions for this model.
      */
-    public function btipayTransactions(): MorphMany
+    public function BtiPayTransactions(): MorphMany
     {
-        return $this->morphMany(BtIpayTransaction::class, 'payable');
+        return $this->morphMany(BtiPayTransaction::class, 'payable');
     }
 
     /**
      * Get the latest BT iPay transaction.
      */
-    public function getLatestBtipayTransactionAttribute(): ?BtIpayTransaction
+    public function getLatestBtiPayTransactionAttribute(): ?BtiPayTransaction
     {
-        return $this->btipayTransactions()->latest()->first();
+        return $this->BtiPayTransactions()->latest()->first();
     }
 
     /**
      * Check if this model has a successful payment.
      */
-    public function isPaidViaBtipay(): bool
+    public function isPaidViaBtiPay(): bool
     {
-        return $this->btipayTransactions()->successful()->exists();
+        return $this->BtiPayTransactions()->successful()->exists();
     }
 
     /**
      * Check if this model has a pending payment.
      */
-    public function hasPendingBtipayPayment(): bool
+    public function hasPendingBtiPayPayment(): bool
     {
-        return $this->btipayTransactions()
+        return $this->BtiPayTransactions()
             ->whereIn('status', ['CREATED', 'APPROVED'])
             ->exists();
     }
@@ -57,9 +57,9 @@ trait HasBtIpayPayments
     /**
      * Get the total paid amount in minor currency units.
      */
-    public function getTotalPaidViaBtipay(): int
+    public function getTotalPaidViaBtiPay(): int
     {
-        return (int) $this->btipayTransactions()
+        return (int) $this->BtiPayTransactions()
             ->successful()
             ->sum('deposited_amount');
     }
@@ -67,9 +67,9 @@ trait HasBtIpayPayments
     /**
      * Get the total refunded amount in minor currency units.
      */
-    public function getTotalRefundedViaBtipay(): int
+    public function getTotalRefundedViaBtiPay(): int
     {
-        return (int) $this->btipayTransactions()
+        return (int) $this->BtiPayTransactions()
             ->sum('refunded_amount');
     }
 }

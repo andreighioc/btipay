@@ -233,7 +233,7 @@
                 Înapoi la site
             </a>
             @if (!$success && (!isset($canRetry) || $canRetry))
-                <a href="{{ route('btipay.pay') }}" class="btn btn-ghost">
+                <a href="{{ route('BtiPay.pay') }}" class="btn btn-ghost">
                     Reîncearcă plata
                 </a>
             @endif

@@ -15,36 +15,36 @@ Suportă plăți **1-Phase** (încasare automată) și **2-Phase** (pre-autoriza
 ## Instalare
 
 ```bash
-composer require btipay/laravel
+composer require BtiPay/laravel
 ```
 
 Instalare completă (config, migrări, controller, rute, views):
 
 ```bash
-php artisan btipay:install
+php artisan BtiPay:install
 php artisan migrate
 ```
 
-Comanda `btipay:install` creează:
-- `config/btipay.php` — configurare
-- `database/migrations/` — tabelă `btipay_transactions`
-- `app/Http/Controllers/BtIpayController.php` — controller complet cu `pay`, `process`, `finish`
-- `routes/btipay.php` — rute web (`/btipay/pay`, `/btipay/process`, `/btipay/finish`)
-- `resources/views/btipay/` — view-uri Blade (`pay.blade.php`, `finish.blade.php`)
+Comanda `BtiPay:install` creează:
+- `config/BtiPay.php` — configurare
+- `database/migrations/` — tabelă `BtiPay_transactions`
+- `app/Http/Controllers/BtiPayController.php` — controller complet cu `pay`, `process`, `finish`
+- `routes/BtiPay.php` — rute web (`/BtiPay/pay`, `/BtiPay/process`, `/BtiPay/finish`)
+- `resources/views/BtiPay/` — view-uri Blade (`pay.blade.php`, `finish.blade.php`)
 
 Opțional, publică doar ce ai nevoie:
 
 ```bash
-php artisan btipay:install --controller   # doar controller
-php artisan btipay:install --routes       # doar rute
-php artisan btipay:install --views        # doar views
-php artisan btipay:install --force        # suprascrie fișierele existente
+php artisan BtiPay:install --controller   # doar controller
+php artisan BtiPay:install --routes       # doar rute
+php artisan BtiPay:install --views        # doar views
+php artisan BtiPay:install --force        # suprascrie fișierele existente
 ```
 
 După instalare, include rutele în aplicație. În `routes/web.php`:
 
 ```php
-require __DIR__.'/btipay.php';
+require __DIR__.'/BtiPay.php';
 ```
 
 Sau în `bootstrap/app.php` (Laravel 11+):
@@ -53,7 +53,7 @@ Sau în `bootstrap/app.php` (Laravel 11+):
 ->withRouting(
     web: __DIR__.'/../routes/web.php',
     then: function () {
-        require base_path('routes/btipay.php');
+        require base_path('routes/BtiPay.php');
     },
 )
 ```
@@ -63,15 +63,15 @@ Sau în `bootstrap/app.php` (Laravel 11+):
 Adăugați în `.env`:
 
 ```env
-BTIPAY_ENVIRONMENT=sandbox
-BTIPAY_USERNAME=your_api_username
-BTIPAY_PASSWORD=your_api_password
-BTIPAY_AUTH_METHOD=header
-BTIPAY_RETURN_URL=https://site-ul-meu.ro/btipay/finish
-BTIPAY_CURRENCY=946
-BTIPAY_LANGUAGE=ro
-BTIPAY_PAYMENT_TYPE=1phase
-BTIPAY_LOGGING=true
+BtiPay_ENVIRONMENT=sandbox
+BtiPay_USERNAME=your_api_username
+BtiPay_PASSWORD=your_api_password
+BtiPay_AUTH_METHOD=header
+BtiPay_RETURN_URL=https://site-ul-meu.ro/BtiPay/finish
+BtiPay_CURRENCY=946
+BtiPay_LANGUAGE=ro
+BtiPay_PAYMENT_TYPE=1phase
+BtiPay_LOGGING=true
 ```
 
 ### Medii disponibile
@@ -94,8 +94,8 @@ BTIPAY_LOGGING=true
 ### 1. Plată simplă (1-Phase)
 
 ```php
-use BtIpay\Laravel\Facades\BtIpay;
-use BtIpay\Laravel\Builders\OrderBundle;
+use BtiPay\Laravel\Facades\BtiPay;
+use BtiPay\Laravel\Builders\OrderBundle;
 
 // Construiește orderBundle
 $bundle = OrderBundle::make()
@@ -106,11 +106,11 @@ $bundle = OrderBundle::make()
     ->billingInfo('642', 'Cluj-Napoca', 'Str. Speranței 10', '400000');
 
 // Înregistrare comandă
-$response = BtIpay::register([
+$response = BtiPay::register([
     'orderNumber'  => 'CMD-' . time(),
     'amount'       => 1500, // 15.00 RON (în bani)
     'currency'     => 946,
-    'returnUrl'    => route('btipay.finish'),
+    'returnUrl'    => route('BtiPay.finish'),
     'description'  => 'Comanda #123',
     'email'        => 'client@example.com',
     'orderBundle'  => $bundle->toArray(),
@@ -129,10 +129,10 @@ if ($response->isSuccessful()) {
 
 ```php
 // Înregistrare pre-autorizare
-$response = BtIpay::registerPreAuth([
+$response = BtiPay::registerPreAuth([
     'orderNumber'  => 'CMD-' . time(),
     'amount'       => 5000, // 50.00 RON
-    'returnUrl'    => route('btipay.finish'),
+    'returnUrl'    => route('BtiPay.finish'),
     'description'  => 'Comandă livrare #456',
     'orderBundle'  => $bundle->toArray(),
 ]);
@@ -140,7 +140,7 @@ $response = BtIpay::registerPreAuth([
 // Redirect client la formUrl...
 
 // --- Mai târziu, la livrare: Încasare (deposit) ---
-$depositResponse = BtIpay::deposit(
+$depositResponse = BtiPay::deposit(
     orderId: $response->getOrderId(),
     amount: 5000
 );
@@ -153,7 +153,7 @@ if ($depositResponse->isSuccessful()) {
 ### 3. Reversare (anulare pre-autorizare)
 
 ```php
-$reverseResponse = BtIpay::reverse(
+$reverseResponse = BtiPay::reverse(
     orderId: 'uuid-order-id'
 );
 ```
@@ -162,13 +162,13 @@ $reverseResponse = BtIpay::reverse(
 
 ```php
 // Rambursare parțială
-$refundResponse = BtIpay::refund(
+$refundResponse = BtiPay::refund(
     orderId: 'uuid-order-id',
     amount: 500 // Rambursare 5.00 RON
 );
 
 // Rambursare totală
-$refundResponse = BtIpay::refund(
+$refundResponse = BtiPay::refund(
     orderId: 'uuid-order-id',
     amount: 5000 // Rambursare sumă completă
 );
@@ -177,10 +177,10 @@ $refundResponse = BtIpay::refund(
 ### 5. Verificare status tranzacție
 
 ```php
-$status = BtIpay::getOrderStatus(orderId: 'uuid-order-id');
+$status = BtiPay::getOrderStatus(orderId: 'uuid-order-id');
 
 // sau prin orderNumber
-$status = BtIpay::getOrderStatus(orderNumber: 'CMD-123');
+$status = BtiPay::getOrderStatus(orderNumber: 'CMD-123');
 
 if ($status->isPaid()) {
     echo 'Tranzacție finalizată cu succes!';
@@ -194,10 +194,10 @@ if ($status->isPaid()) {
 ### 6. Shortcut: Obținere URL de plată
 
 ```php
-$paymentUrl = BtIpay::getPaymentUrl(
+$paymentUrl = BtiPay::getPaymentUrl(
     orderNumber: 'CMD-' . time(),
     amount: 2500,
-    returnUrl: route('btipay.finish'),
+    returnUrl: route('BtiPay.finish'),
     options: [
         'description' => 'Plată servicii',
         'email' => 'client@email.com',
@@ -209,10 +209,10 @@ return redirect($paymentUrl);
 
 ### 7. Pagina de finish (Return URL)
 
-Dacă ai rulat `php artisan btipay:install`, controller-ul și view-urile sunt deja create.
-Ruta `GET /btipay/finish` este înregistrată automat ca `btipay.finish`.
+Dacă ai rulat `php artisan BtiPay:install`, controller-ul și view-urile sunt deja create.
+Ruta `GET /BtiPay/finish` este înregistrată automat ca `BtiPay.finish`.
 
-Controller-ul generat (`BtIpayController`) face automat:
+Controller-ul generat (`BtiPayController`) face automat:
 - Verificare status prin `getOrderStatusExtended.do`
 - Actualizare tranzacție în baza de date (card, sumă, RRN, ECI, etc.)
 - Afișare cele 22 mesaje de eroare obligatorii
@@ -222,7 +222,7 @@ Controller-ul generat (`BtIpayController`) face automat:
 Pentru integrare custom, poți folosi direct facade-ul:
 
 ```php
-$status = BtIpay::getOrderStatus(orderId: $request->get('orderId'));
+$status = BtiPay::getOrderStatus(orderId: $request->get('orderId'));
 
 if ($status->isPaid()) {
     // Plată reușită - card, sumă, RRN disponibile
@@ -236,13 +236,13 @@ if ($status->isDeclined()) {
 }
 ```
 
-### 8. Tracking cu modelul BtIpayTransaction
+### 8. Tracking cu modelul BtiPayTransaction
 
 ```php
-use BtIpay\Laravel\Models\BtIpayTransaction;
+use BtiPay\Laravel\Models\BtiPayTransaction;
 
 // Creare tranzacție
-$transaction = BtIpayTransaction::create([
+$transaction = BtiPayTransaction::create([
     'order_id'       => $response->getOrderId(),
     'order_number'   => 'CMD-123',
     'payment_type'   => '1phase',
@@ -259,49 +259,49 @@ $transaction->payable()->associate($order);
 $transaction->save();
 
 // Query-uri
-BtIpayTransaction::successful()->get();     // Toate tranzacțiile plătite
-BtIpayTransaction::declined()->get();       // Toate declinatele
-BtIpayTransaction::preAuthorized()->get();  // Cele care așteaptă deposit
+BtiPayTransaction::successful()->get();     // Toate tranzacțiile plătite
+BtiPayTransaction::declined()->get();       // Toate declinatele
+BtiPayTransaction::preAuthorized()->get();  // Cele care așteaptă deposit
 ```
 
 ### 9. Trait pentru modele
 
 ```php
-use BtIpay\Laravel\Traits\HasBtIpayPayments;
+use BtiPay\Laravel\Traits\HasBtiPayPayments;
 
 class Order extends Model
 {
-    use HasBtIpayPayments;
+    use HasBtiPayPayments;
 }
 
 // Utilizare
 $order = Order::find(1);
-$order->btipayTransactions;          // Toate tranzacțiile
-$order->latestBtipayTransaction;     // Ultima tranzacție
-$order->isPaidViaBtipay();           // Este plătit?
-$order->getTotalPaidViaBtipay();     // Total plătit (în bani)
-$order->getTotalRefundedViaBtipay(); // Total rambursat
+$order->BtiPayTransactions;          // Toate tranzacțiile
+$order->latestBtiPayTransaction;     // Ultima tranzacție
+$order->isPaidViaBtiPay();           // Este plătit?
+$order->getTotalPaidViaBtiPay();     // Total plătit (în bani)
+$order->getTotalRefundedViaBtiPay(); // Total rambursat
 ```
 
 ### 10. Plăți cu puncte de loialitate (StarBT)
 
 ```php
 // Deposit cu loialitate
-$response = BtIpay::deposit(
+$response = BtiPay::deposit(
     orderId: 'uuid-ron-order-id',
     amount: 3000, // Sumă totală RON + LOY
     depositLoyalty: true
 );
 
 // Refund cu loialitate
-$response = BtIpay::refund(
+$response = BtiPay::refund(
     orderId: 'uuid-ron-order-id',
     amount: 4000,
     refundLoyalty: true
 );
 
 // Reverse cu loialitate
-$response = BtIpay::reverse(
+$response = BtiPay::reverse(
     orderId: 'uuid-ron-order-id',
     reverseLoyalty: true
 );
@@ -321,10 +321,10 @@ Pachetul emite următoarele evenimente pe care le poți asculta:
 ```php
 // EventServiceProvider.php
 protected $listen = [
-    \BtIpay\Laravel\Events\PaymentCompleted::class => [
+    \BtiPay\Laravel\Events\PaymentCompleted::class => [
         \App\Listeners\SendPaymentConfirmation::class,
     ],
-    \BtIpay\Laravel\Events\PaymentDeclined::class => [
+    \BtiPay\Laravel\Events\PaymentDeclined::class => [
         \App\Listeners\HandleFailedPayment::class,
     ],
 ];
@@ -362,14 +362,14 @@ Cele 22 de erori obligatorii de tratat conform documentației BT:
 ## Structura pachetului
 
 ```
-btipay/
+BtiPay/
 ├── config/
-│   └── btipay.php                 # Configurare
+│   └── BtiPay.php                 # Configurare
 ├── database/
 │   └── migrations/                # Migrare tabelă tranzacții
 ├── stubs/
-│   ├── BtIpayController.php.stub  # Controller (publicat prin btipay:install)
-│   ├── btipay-routes.php.stub     # Rute (publicat prin btipay:install)
+│   ├── BtiPayController.php.stub  # Controller (publicat prin BtiPay:install)
+│   ├── BtiPay-routes.php.stub     # Rute (publicat prin BtiPay:install)
 │   └── views/
 │       ├── pay.blade.php.stub     # Formular de plată
 │       └── finish.blade.php.stub  # Pagina de finish (succes/eroare)
@@ -377,7 +377,7 @@ btipay/
 │   ├── Builders/
 │   │   └── OrderBundle.php        # Builder fluent pentru orderBundle
 │   ├── Console/
-│   │   └── InstallCommand.php     # php artisan btipay:install
+│   │   └── InstallCommand.php     # php artisan BtiPay:install
 │   ├── Enums/
 │   │   ├── Currency.php           # Enum valute (RON/EUR/USD)
 │   │   ├── OrderStatus.php        # Enum statusuri tranzacție
@@ -388,14 +388,14 @@ btipay/
 │   │   ├── PaymentRefunded.php
 │   │   └── PaymentRegistered.php
 │   ├── Exceptions/
-│   │   ├── BtIpayAuthenticationException.php
-│   │   ├── BtIpayConnectionException.php
-│   │   ├── BtIpayException.php
-│   │   └── BtIpayValidationException.php
+│   │   ├── BtiPayAuthenticationException.php
+│   │   ├── BtiPayConnectionException.php
+│   │   ├── BtiPayException.php
+│   │   └── BtiPayValidationException.php
 │   ├── Facades/
-│   │   └── BtIpay.php             # Facade Laravel
+│   │   └── BtiPay.php             # Facade Laravel
 │   ├── Models/
-│   │   └── BtIpayTransaction.php  # Model Eloquent
+│   │   └── BtiPayTransaction.php  # Model Eloquent
 │   ├── Responses/
 │   │   ├── ActionCodeMessages.php  # Mesaje erori (RO/EN)
 │   │   ├── BaseResponse.php
@@ -406,10 +406,10 @@ btipay/
 │   │   ├── RegisterResponse.php
 │   │   └── ReverseResponse.php
 │   ├── Traits/
-│   │   └── HasBtIpayPayments.php  # Trait pentru modele
-│   ├── BtIpayClient.php           # Client HTTP
-│   ├── BtIpayGateway.php          # Gateway principal
-│   └── BtIpayServiceProvider.php  # Service Provider
+│   │   └── HasBtiPayPayments.php  # Trait pentru modele
+│   ├── BtiPayClient.php           # Client HTTP
+│   ├── BtiPayGateway.php          # Gateway principal
+│   └── BtiPayServiceProvider.php  # Service Provider
 ├── composer.json
 └── README.md
 ```

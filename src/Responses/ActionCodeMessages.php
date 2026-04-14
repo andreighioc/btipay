@@ -1,6 +1,6 @@
 <?php
 
-namespace BtIpay\Laravel\Responses;
+namespace AndreiGhioc\BtiPay\Responses;
 
 /**
  * Maps BT iPay actionCode values to human-readable messages.
@@ -89,7 +89,7 @@ class ActionCodeMessages
      */
     public static function getMessage(int $code, ?string $language = null): string
     {
-        $lang = $language ?? config('btipay.language', 'ro');
+        $lang = $language ?? config('BtiPay.language', 'ro');
 
         if ($lang === 'ro') {
             return static::$requiredMessages[$code]

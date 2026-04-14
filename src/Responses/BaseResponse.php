@@ -1,6 +1,6 @@
 <?php
 
-namespace BtIpay\Laravel\Responses;
+namespace AndreiGhioc\BtiPay\Responses;
 
 abstract class BaseResponse
 {

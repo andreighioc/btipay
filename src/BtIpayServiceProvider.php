@@ -1,60 +1,29 @@
 <?php
 
-namespace BtIpay\Laravel;
+namespace AndreiGhioc\BtiPay;
 
 use Illuminate\Support\ServiceProvider;
-use BtIpay\Laravel\Console\InstallCommand;
 
-class BtIpayServiceProvider extends ServiceProvider
+class BtiPayServiceProvider extends ServiceProvider
 {
-    /**
-     * Register any application services.
-     */
-    public function register(): void
+    public function register()
     {
-        $this->mergeConfigFrom(
-            __DIR__ . '/../config/btipay.php',
-            'btipay'
-        );
+        // Unește configurația default cu cea a utilizatorului
+        $this->mergeConfigFrom(__DIR__.'/../config/btipay.php', 'btipay');
 
-        $this->app->singleton(BtIpayClient::class, function ($app) {
-            return new BtIpayClient(
-                config('btipay.username'),
-                config('btipay.password'),
-                config('btipay.environment', 'sandbox'),
-                config('btipay.auth_method', 'header'),
-                config('btipay.http', [])
-            );
+        // Înregistrează clasa principală în Container
+        $this->app->singleton('btipay', function ($app) {
+            return new BtiPay(config('btipay'));
         });
-
-        $this->app->singleton(BtIpayGateway::class, function ($app) {
-            return new BtIpayGateway(
-                $app->make(BtIpayClient::class)
-            );
-        });
-
-        $this->app->alias(BtIpayGateway::class, 'btipay');
     }
 
-    /**
-     * Bootstrap any application services.
-     */
-    public function boot(): void
+    public function boot()
     {
+        // Permite publicarea configurației: php artisan vendor:publish
         if ($this->app->runningInConsole()) {
-            $this->commands([
-                InstallCommand::class,
-            ]);
-
             $this->publishes([
-                __DIR__ . '/../config/btipay.php' => config_path('btipay.php'),
-            ], 'btipay-config');
-
-            $this->publishes([
-                __DIR__ . '/../database/migrations' => database_path('migrations'),
-            ], 'btipay-migrations');
+                __DIR__.'/../config/btipay.php' => config_path('btipay.php'),
+            ], 'config');
         }
-
-        $this->loadMigrationsFrom(__DIR__ . '/../database/migrations');
     }
 }

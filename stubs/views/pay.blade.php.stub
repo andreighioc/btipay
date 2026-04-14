@@ -165,7 +165,7 @@
             </div>
         @endif
 
-        <form method="POST" action="{{ route('btipay.process') }}">
+        <form method="POST" action="{{ route('BtiPay.process') }}">
             @csrf
 
             <input type="hidden" name="order_number" value="{{ $orderNumber }}">

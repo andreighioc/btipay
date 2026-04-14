@@ -1,18 +1,18 @@
 <?php
 
-namespace BtIpay\Laravel\Models;
+namespace AndreiGhioc\BtiPay\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
-use BtIpay\Laravel\Enums\OrderStatus;
-use BtIpay\Laravel\Responses\ActionCodeMessages;
+use AndreiGhioc\BtiPay\Enums\OrderStatus;
+use AndreiGhioc\BtiPay\Responses\ActionCodeMessages;
 
-class BtIpayTransaction extends Model
+class BtiPayTransaction extends Model
 {
     use SoftDeletes;
 
-    protected $table = 'btipay_transactions';
+    protected $table = 'BtiPay_transactions';
 
     protected $fillable = [
         'order_id',

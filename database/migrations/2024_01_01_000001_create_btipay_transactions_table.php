@@ -11,7 +11,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('btipay_transactions', function (Blueprint $table) {
+        Schema::create('BtiPay_transactions', function (Blueprint $table) {
             $table->id();
             $table->uuid('order_id')->nullable()->index()->comment('iPay UUID order ID');
             $table->string('order_number', 32)->index()->comment('Merchant order number');
@@ -77,6 +77,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('btipay_transactions');
+        Schema::dropIfExists('BtiPay_transactions');
     }
 };

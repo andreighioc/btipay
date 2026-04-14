@@ -1,13 +1,13 @@
 <?php
 
-namespace BtIpay\Laravel\Exceptions;
+namespace AndreiGhioc\BtiPay\Exceptions;
 
 use Exception;
 
 /**
  * Base exception for all BT iPay errors.
  */
-class BtIpayException extends Exception
+class BtiPayException extends Exception
 {
     //
 }

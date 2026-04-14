@@ -1,11 +1,11 @@
 <?php
 
-namespace BtIpay\Laravel\Exceptions;
+namespace AndreiGhioc\BtiPay\Exceptions;
 
 /**
  * Thrown when the connection to the BT iPay API fails.
  */
-class BtIpayConnectionException extends BtIpayException
+class BtiPayConnectionException extends BtiPayException
 {
     //
 }

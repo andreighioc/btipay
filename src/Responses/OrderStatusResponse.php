@@ -1,8 +1,8 @@
 <?php
 
-namespace BtIpay\Laravel\Responses;
+namespace AndreiGhioc\BtiPay\Responses;
 
-use BtIpay\Laravel\Enums\OrderStatus;
+use AndreiGhioc\BtiPay\Enums\OrderStatus;
 
 class OrderStatusResponse extends BaseResponse
 {

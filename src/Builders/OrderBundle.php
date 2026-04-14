@@ -1,8 +1,8 @@
 <?php
 
-namespace BtIpay\Laravel\Builders;
+namespace AndreiGhioc\BtiPay\Builders;
 
-use BtIpay\Laravel\Exceptions\BtIpayValidationException;
+use AndreiGhioc\BtiPay\Exceptions\BtiPayValidationException;
 
 /**
  * Fluent builder for the orderBundle parameter required by register.do / registerPreAuth.do.
@@ -159,7 +159,7 @@ class OrderBundle
     /**
      * Convert the builder to an array.
      *
-     * @throws BtIpayValidationException
+     * @throws BtiPayValidationException
      */
     public function toArray(): array
     {

@@ -1,11 +1,11 @@
 <?php
 
-namespace BtIpay\Laravel\Exceptions;
+namespace AndreiGhioc\BtiPay\Exceptions;
 
 /**
  * Thrown when API authentication fails (wrong credentials, password change required, etc.).
  */
-class BtIpayAuthenticationException extends BtIpayException
+class BtiPayAuthenticationException extends BtiPayException
 {
     //
 }
