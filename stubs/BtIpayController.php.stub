@@ -1,0 +1,224 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use Illuminate\Http\Request;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\View\View;
+use BtIpay\Laravel\Facades\BtIpay;
+use BtIpay\Laravel\Builders\OrderBundle;
+use BtIpay\Laravel\Models\BtIpayTransaction;
+use BtIpay\Laravel\Responses\ActionCodeMessages;
+use BtIpay\Laravel\Events\PaymentRegistered;
+use BtIpay\Laravel\Events\PaymentCompleted;
+use BtIpay\Laravel\Events\PaymentDeclined;
+
+class BtIpayController extends Controller
+{
+    /**
+     * Display the payment form / initiate payment.
+     *
+     * Example usage from another part of the application:
+     *
+     *   return redirect()->route('btipay.pay', [
+     *       'order_number' => 'CMD-123',
+     *       'amount'       => 1500,       // 15.00 RON (in minor units)
+     *       'description'  => 'Order #123',
+     *       'email'        => 'client@email.com',
+     *       'phone'        => '40740123456',
+     *   ]);
+     */
+    public function pay(Request $request): View
+    {
+        return view('btipay.pay', [
+            'orderNumber' => $request->get('order_number', 'CMD-' . time()),
+            'amount'      => $request->get('amount', 0),
+            'description' => $request->get('description', ''),
+            'email'       => $request->get('email', ''),
+            'phone'       => $request->get('phone', ''),
+        ]);
+    }
+
+    /**
+     * Process payment - send the request to BT iPay and redirect.
+     */
+    public function process(Request $request): RedirectResponse
+    {
+        $request->validate([
+            'order_number' => 'required|string|max:32',
+            'amount'       => 'required|integer|min:1',
+            'description'  => 'nullable|string|max:512',
+            'email'        => 'nullable|email|max:254',
+            'phone'        => 'nullable|string|max:15',
+        ]);
+
+        $amount      = (int) $request->input('amount');
+        $orderNumber = $request->input('order_number');
+        $description = $request->input('description', '');
+        $email       = $request->input('email', '');
+        $phone       = $request->input('phone', '');
+
+        // Build orderBundle (optional, but recommended by BT)
+        $bundle = OrderBundle::make()
+            ->orderCreationDate(now()->format('Y-m-d'));
+
+        if ($email) {
+            $bundle->email($email);
+        }
+
+        if ($phone) {
+            $bundle->phone($phone);
+        }
+
+        // Minimum required: deliveryInfo + billingInfo
+        // Fill in with real customer data if available
+        $bundle->minimal('642');
+
+        // Payment parameters
+        $params = [
+            'orderNumber' => $orderNumber,
+            'amount'      => $amount,
+            'returnUrl'   => route('btipay.finish'),
+            'description' => $description,
+            'orderBundle' => $bundle->toArray(),
+        ];
+
+        if ($email) {
+            $params['email'] = $email;
+        }
+
+        try {
+            // Payment type is determined from config (1phase or 2phase)
+            $paymentType = config('btipay.payment_type', '1phase');
+
+            $response = $paymentType === '2phase'
+                ? BtIpay::registerPreAuth($params)
+                : BtIpay::register($params);
+
+            if ($response->isSuccessful()) {
+                // Save transaction to database
+                $transaction = BtIpayTransaction::create([
+                    'order_id'              => $response->getOrderId(),
+                    'order_number'          => $orderNumber,
+                    'payment_type'          => $paymentType,
+                    'amount'                => $amount,
+                    'currency'              => config('btipay.currency', '946'),
+                    'status'                => 'CREATED',
+                    'form_url'              => $response->getFormUrl(),
+                    'return_url'            => route('btipay.finish'),
+                    'description'           => $description,
+                    'customer_email'        => $email,
+                    'customer_phone'        => $phone,
+                    'raw_register_response' => $response->getRaw(),
+                ]);
+
+                // Dispatch event
+                PaymentRegistered::dispatch($transaction, $response->getFormUrl());
+
+                // Redirect to the BT iPay payment page
+                return redirect()->away($response->getFormUrl());
+            }
+
+            // Order registration error
+            return redirect()->route('btipay.pay')
+                ->with('error', 'Payment initiation failed: ' . $response->getErrorMessage())
+                ->withInput();
+
+        } catch (\Exception $e) {
+            return redirect()->route('btipay.pay')
+                ->with('error', 'Connection error: ' . $e->getMessage())
+                ->withInput();
+        }
+    }
+
+    /**
+     * Finish page - customer is redirected here after payment.
+     *
+     * Verifies the transaction status via getOrderStatusExtended.do
+     * and displays the result.
+     */
+    public function finish(Request $request): View
+    {
+        $orderId = $request->get('orderId');
+
+        if (empty($orderId)) {
+            return view('btipay.finish', [
+                'success' => false,
+                'message' => 'Missing order ID.',
+            ]);
+        }
+
+        try {
+            $status = BtIpay::getOrderStatus(orderId: $orderId);
+
+            // Update transaction in database
+            $transaction = BtIpayTransaction::where('order_id', $orderId)->first();
+
+            if ($transaction) {
+                $transaction->update([
+                    'status'                  => $status->getPaymentState() ?? $transaction->status,
+                    'action_code'             => $status->getActionCode(),
+                    'action_code_description' => $status->getActionCodeDescription(),
+                    'masked_pan'              => $status->getMaskedPan(),
+                    'card_expiration'         => $status->getCardExpiration(),
+                    'cardholder_name'         => $status->getCardholderName(),
+                    'approval_code'           => $status->getApprovalCode(),
+                    'auth_ref_num'            => $status->getAuthRefNum(),
+                    'terminal_id'             => $status->getTerminalId(),
+                    'payment_way'             => $status->getPaymentWay(),
+                    'approved_amount'         => $status->getApprovedAmount() ?? 0,
+                    'deposited_amount'        => $status->getDepositedAmount() ?? 0,
+                    'refunded_amount'         => $status->getRefundedAmount() ?? 0,
+                    'eci'                     => $status->getEci(),
+                    'customer_ip'             => $status->getIp(),
+                    'error_code'              => $status->getErrorCode(),
+                    'error_message'           => $status->getErrorMessage(),
+                    'raw_status_response'     => $status->getRaw(),
+                ]);
+            }
+
+            if ($status->isPaid() || $status->isPreAuthorized()) {
+                // Payment successful
+                if ($transaction) {
+                    PaymentCompleted::dispatch($transaction);
+                }
+
+                return view('btipay.finish', [
+                    'success'      => true,
+                    'message'      => 'Payment completed successfully!',
+                    'orderNumber'  => $status->getOrderNumber(),
+                    'amount'       => $status->getAmountFormatted(),
+                    'currency'     => $status->getCurrency(),
+                    'maskedPan'    => $status->getMaskedPan(),
+                    'approvalCode' => $status->getApprovalCode(),
+                    'rrn'          => $status->getAuthRefNum(),
+                    'date'         => $status->getDateCarbon()?->format('d.m.Y H:i:s'),
+                    'transaction'  => $transaction,
+                ]);
+            }
+
+            // Payment declined
+            $actionCode = $status->getActionCode();
+            $canRetry   = $actionCode ? ! ActionCodeMessages::shouldNotRetryWithSameCard($actionCode) : true;
+
+            if ($transaction) {
+                PaymentDeclined::dispatch($transaction, $actionCode, $status->getActionCodeDescription());
+            }
+
+            return view('btipay.finish', [
+                'success'     => false,
+                'message'     => $status->getActionCodeMessage() ?? 'Transaction declined, please try again.',
+                'canRetry'    => $canRetry,
+                'actionCode'  => $actionCode,
+                'orderNumber' => $status->getOrderNumber(),
+                'transaction' => $transaction,
+            ]);
+
+        } catch (\Exception $e) {
+            return view('btipay.finish', [
+                'success' => false,
+                'message' => 'Error verifying payment: ' . $e->getMessage(),
+            ]);
+        }
+    }
+}

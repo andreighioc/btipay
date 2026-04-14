@@ -1,0 +1,424 @@
+# BT iPay - Laravel Package
+
+> 🇷🇴 [Versiunea în română](README_RO.md)
+
+Laravel package for integrating with the **Banca Transilvania iPay** payment platform.
+
+Supports **1-Phase** payments (automatic capture) and **2-Phase** payments (pre-authorization + manual deposit), refunds, reversals, transaction status verification, and loyalty point payments (StarBT).
+
+## Requirements
+
+- PHP 8.1+ (Laravel 13 requires PHP 8.3+)
+- Laravel 10, 11, 12 or 13
+- API credentials from Banca Transilvania
+
+## Installation
+
+```bash
+composer require btipay/laravel
+```
+
+Full installation (config, migrations, controller, routes, views):
+
+```bash
+php artisan btipay:install
+php artisan migrate
+```
+
+The `btipay:install` command creates:
+- `config/btipay.php` — configuration
+- `database/migrations/` — `btipay_transactions` table
+- `app/Http/Controllers/BtIpayController.php` — complete controller with `pay`, `process`, `finish`
+- `routes/btipay.php` — web routes (`/btipay/pay`, `/btipay/process`, `/btipay/finish`)
+- `resources/views/btipay/` — Blade views (`pay.blade.php`, `finish.blade.php`)
+
+Optionally, publish only what you need:
+
+```bash
+php artisan btipay:install --controller   # controller only
+php artisan btipay:install --routes       # routes only
+php artisan btipay:install --views        # views only
+php artisan btipay:install --force        # overwrite existing files
+```
+
+After installation, include the routes in your app. In `routes/web.php`:
+
+```php
+require __DIR__.'/btipay.php';
+```
+
+Or in `bootstrap/app.php` (Laravel 11+):
+
+```php
+->withRouting(
+    web: __DIR__.'/../routes/web.php',
+    then: function () {
+        require base_path('routes/btipay.php');
+    },
+)
+```
+
+## Configuration
+
+Add to your `.env`:
+
+```env
+BTIPAY_ENVIRONMENT=sandbox
+BTIPAY_USERNAME=your_api_username
+BTIPAY_PASSWORD=your_api_password
+BTIPAY_AUTH_METHOD=header
+BTIPAY_RETURN_URL=https://your-site.com/btipay/finish
+BTIPAY_CURRENCY=946
+BTIPAY_LANGUAGE=ro
+BTIPAY_PAYMENT_TYPE=1phase
+BTIPAY_LOGGING=true
+```
+
+### Available Environments
+
+| Environment | Description |
+|---|---|
+| `sandbox` | Test environment (https://ecclients-sandbox.btrl.ro) |
+| `production` | Production environment (https://ecclients.btrl.ro) |
+
+### Supported Currencies (ISO 4217)
+
+| Currency | Code |
+|---|---|
+| RON | 946 |
+| EUR | 978 |
+| USD | 840 |
+
+## Usage
+
+### 1. Simple Payment (1-Phase)
+
+```php
+use BtIpay\Laravel\Facades\BtIpay;
+use BtIpay\Laravel\Builders\OrderBundle;
+
+// Build orderBundle
+$bundle = OrderBundle::make()
+    ->orderCreationDate(now()->format('Y-m-d'))
+    ->email('client@example.com')
+    ->phone('40740123456')
+    ->deliveryInfo('delivery', '642', 'Cluj-Napoca', 'Str. Example 10', '400000')
+    ->billingInfo('642', 'Cluj-Napoca', 'Str. Example 10', '400000');
+
+// Register order
+$response = BtIpay::register([
+    'orderNumber'  => 'ORD-' . time(),
+    'amount'       => 1500, // 15.00 RON (in minor units / bani)
+    'currency'     => 946,
+    'returnUrl'    => route('btipay.finish'),
+    'description'  => 'Order #123',
+    'email'        => 'client@example.com',
+    'orderBundle'  => $bundle->toArray(),
+]);
+
+if ($response->isSuccessful()) {
+    // Redirect to the BT payment page
+    return redirect($response->getFormUrl());
+} else {
+    // Registration error
+    echo $response->getErrorMessage();
+}
+```
+
+### 2. Pre-Authorized Payment (2-Phase)
+
+```php
+// Register pre-authorization
+$response = BtIpay::registerPreAuth([
+    'orderNumber'  => 'ORD-' . time(),
+    'amount'       => 5000, // 50.00 RON
+    'returnUrl'    => route('btipay.finish'),
+    'description'  => 'Delivery order #456',
+    'orderBundle'  => $bundle->toArray(),
+]);
+
+// Redirect customer to formUrl...
+
+// --- Later, upon delivery: Capture (deposit) ---
+$depositResponse = BtIpay::deposit(
+    orderId: $response->getOrderId(),
+    amount: 5000
+);
+
+if ($depositResponse->isSuccessful()) {
+    echo 'Payment captured successfully!';
+}
+```
+
+### 3. Reversal (Cancel Pre-Authorization)
+
+```php
+$reverseResponse = BtIpay::reverse(
+    orderId: 'uuid-order-id'
+);
+```
+
+### 4. Refund
+
+```php
+// Partial refund
+$refundResponse = BtIpay::refund(
+    orderId: 'uuid-order-id',
+    amount: 500 // Refund 5.00 RON
+);
+
+// Full refund
+$refundResponse = BtIpay::refund(
+    orderId: 'uuid-order-id',
+    amount: 5000 // Refund full amount
+);
+```
+
+### 5. Transaction Status Check
+
+```php
+$status = BtIpay::getOrderStatus(orderId: 'uuid-order-id');
+
+// or by orderNumber
+$status = BtIpay::getOrderStatus(orderNumber: 'ORD-123');
+
+if ($status->isPaid()) {
+    echo 'Transaction completed successfully!';
+    echo 'Amount: ' . $status->getAmountFormatted() . ' RON';
+    echo 'Card: ' . $status->getMaskedPan();
+} elseif ($status->isDeclined()) {
+    echo 'Transaction declined: ' . $status->getActionCodeMessage();
+}
+```
+
+### 6. Shortcut: Get Payment URL
+
+```php
+$paymentUrl = BtIpay::getPaymentUrl(
+    orderNumber: 'ORD-' . time(),
+    amount: 2500,
+    returnUrl: route('btipay.finish'),
+    options: [
+        'description' => 'Service payment',
+        'email' => 'client@email.com',
+    ]
+);
+
+return redirect($paymentUrl);
+```
+
+### 7. Finish Page (Return URL)
+
+If you ran `php artisan btipay:install`, the controller and views are already created.
+The route `GET /btipay/finish` is automatically registered as `btipay.finish`.
+
+The generated controller (`BtIpayController`) automatically handles:
+- Status verification via `getOrderStatusExtended.do`
+- Transaction update in the database (card, amount, RRN, ECI, etc.)
+- Display of all 22 required error messages
+- Retry restrictions for action codes 803, 804, 913
+- Event dispatch: `PaymentCompleted` / `PaymentDeclined`
+
+For custom integration, you can use the facade directly:
+
+```php
+$status = BtIpay::getOrderStatus(orderId: $request->get('orderId'));
+
+if ($status->isPaid()) {
+    // Payment successful - card, amount, RRN available
+    $status->getMaskedPan();
+    $status->getAmountFormatted();
+    $status->getAuthRefNum();
+}
+
+if ($status->isDeclined()) {
+    $status->getActionCodeMessage(); // message in the configured language
+}
+```
+
+### 8. Tracking with BtIpayTransaction Model
+
+```php
+use BtIpay\Laravel\Models\BtIpayTransaction;
+
+// Create transaction
+$transaction = BtIpayTransaction::create([
+    'order_id'       => $response->getOrderId(),
+    'order_number'   => 'ORD-123',
+    'payment_type'   => '1phase',
+    'amount'         => 1500,
+    'currency'       => '946',
+    'status'         => 'CREATED',
+    'form_url'       => $response->getFormUrl(),
+    'customer_email' => 'client@email.com',
+]);
+
+// Associate with a model (e.g. Order)
+$order = Order::find(1);
+$transaction->payable()->associate($order);
+$transaction->save();
+
+// Queries
+BtIpayTransaction::successful()->get();     // All paid transactions
+BtIpayTransaction::declined()->get();       // All declined
+BtIpayTransaction::preAuthorized()->get();  // Awaiting deposit
+```
+
+### 9. Model Trait
+
+```php
+use BtIpay\Laravel\Traits\HasBtIpayPayments;
+
+class Order extends Model
+{
+    use HasBtIpayPayments;
+}
+
+// Usage
+$order = Order::find(1);
+$order->btipayTransactions;          // All transactions
+$order->latestBtipayTransaction;     // Latest transaction
+$order->isPaidViaBtipay();           // Is it paid?
+$order->getTotalPaidViaBtipay();     // Total paid (in minor units)
+$order->getTotalRefundedViaBtipay(); // Total refunded
+```
+
+### 10. Loyalty Point Payments (StarBT)
+
+```php
+// Deposit with loyalty
+$response = BtIpay::deposit(
+    orderId: 'uuid-ron-order-id',
+    amount: 3000, // Total amount RON + LOY
+    depositLoyalty: true
+);
+
+// Refund with loyalty
+$response = BtIpay::refund(
+    orderId: 'uuid-ron-order-id',
+    amount: 4000,
+    refundLoyalty: true
+);
+
+// Reverse with loyalty
+$response = BtIpay::reverse(
+    orderId: 'uuid-ron-order-id',
+    reverseLoyalty: true
+);
+```
+
+## Events
+
+The package dispatches the following events that you can listen for:
+
+| Event | Description |
+|---|---|
+| `PaymentRegistered` | Payment has been registered with iPay |
+| `PaymentCompleted` | Payment completed successfully (DEPOSITED) |
+| `PaymentDeclined` | Payment was declined |
+| `PaymentRefunded` | Refund processed (partial or full) |
+
+```php
+// EventServiceProvider.php
+protected $listen = [
+    \BtIpay\Laravel\Events\PaymentCompleted::class => [
+        \App\Listeners\SendPaymentConfirmation::class,
+    ],
+    \BtIpay\Laravel\Events\PaymentDeclined::class => [
+        \App\Listeners\HandleFailedPayment::class,
+    ],
+];
+```
+
+## Error Codes (Action Codes)
+
+The 22 required error codes to handle per BT documentation:
+
+| Code | Description |
+|---|---|
+| 104 | Restricted card |
+| 124 | Transaction cannot be authorized per regulations |
+| 320 | Inactive card |
+| 801 | Issuer unavailable |
+| 803 | Card blocked ⚠️ Do NOT retry with the same card! |
+| 804 | Transaction not allowed ⚠️ Do NOT retry with the same card! |
+| 805 | Transaction declined |
+| 861 | Invalid expiration date |
+| 871 | Invalid CVV |
+| 905 | Invalid card |
+| 906 | Expired card |
+| 913 | Invalid transaction ⚠️ Do NOT retry with the same card! |
+| 914 | Invalid account |
+| 915 | Insufficient funds |
+| 917 | Transaction limit exceeded |
+| 952 | Suspected fraud |
+| 998 | Installments not allowed with this card |
+| 341016 | 3DS2 authentication declined |
+| 341017 | 3DS2 status unknown |
+| 341018 | 3DS2 cancelled by customer |
+| 341019 | 3DS2 authentication failed |
+| 341020 | 3DS2 unknown status |
+
+## Package Structure
+
+```
+btipay/
+├── config/
+│   └── btipay.php                 # Configuration
+├── database/
+│   └── migrations/                # Transactions table migration
+├── stubs/
+│   ├── BtIpayController.php.stub  # Controller (published via btipay:install)
+│   ├── btipay-routes.php.stub     # Routes (published via btipay:install)
+│   └── views/
+│       ├── pay.blade.php.stub     # Payment form
+│       └── finish.blade.php.stub  # Finish page (success/error)
+├── src/
+│   ├── Builders/
+│   │   └── OrderBundle.php        # Fluent builder for orderBundle
+│   ├── Console/
+│   │   └── InstallCommand.php     # php artisan btipay:install
+│   ├── Enums/
+│   │   ├── Currency.php           # Currency enum (RON/EUR/USD)
+│   │   ├── OrderStatus.php        # Transaction status enum
+│   │   └── PaymentType.php        # Payment type enum (1phase/2phase)
+│   ├── Events/
+│   │   ├── PaymentCompleted.php
+│   │   ├── PaymentDeclined.php
+│   │   ├── PaymentRefunded.php
+│   │   └── PaymentRegistered.php
+│   ├── Exceptions/
+│   │   ├── BtIpayAuthenticationException.php
+│   │   ├── BtIpayConnectionException.php
+│   │   ├── BtIpayException.php
+│   │   └── BtIpayValidationException.php
+│   ├── Facades/
+│   │   └── BtIpay.php             # Laravel Facade
+│   ├── Models/
+│   │   └── BtIpayTransaction.php  # Eloquent Model
+│   ├── Responses/
+│   │   ├── ActionCodeMessages.php  # Error messages (RO/EN)
+│   │   ├── BaseResponse.php
+│   │   ├── DepositResponse.php
+│   │   ├── FinishedPaymentInfoResponse.php
+│   │   ├── OrderStatusResponse.php
+│   │   ├── RefundResponse.php
+│   │   ├── RegisterResponse.php
+│   │   └── ReverseResponse.php
+│   ├── Traits/
+│   │   └── HasBtIpayPayments.php  # Trait for models
+│   ├── BtIpayClient.php           # HTTP Client
+│   ├── BtIpayGateway.php          # Main Gateway
+│   └── BtIpayServiceProvider.php  # Service Provider
+├── composer.json
+├── README.md
+└── README_RO.md
+```
+
+## License
+
+MIT License
+
+## Contact
+
+For BT iPay API issues: aplicatiiecommerce@btrl.ro

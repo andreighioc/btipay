@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <title>Plată online - BT iPay</title>
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+            color: #e2e8f0;
+        }
+        .card {
+            background: rgba(30, 41, 59, 0.8);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(99, 102, 241, 0.2);
+            border-radius: 16px;
+            padding: 2.5rem;
+            width: 100%;
+            max-width: 480px;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.4);
+        }
+        .logo {
+            text-align: center;
+            margin-bottom: 1.5rem;
+        }
+        .logo span {
+            font-size: 1.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #818cf8, #6366f1);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .logo small {
+            display: block;
+            color: #94a3b8;
+            font-size: 0.8rem;
+            margin-top: 0.25rem;
+        }
+        h1 {
+            font-size: 1.25rem;
+            text-align: center;
+            margin-bottom: 1.5rem;
+            color: #f1f5f9;
+        }
+        .alert {
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            font-size: 0.875rem;
+        }
+        .alert-error {
+            background: rgba(239, 68, 68, 0.15);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            color: #fca5a5;
+        }
+        .form-group {
+            margin-bottom: 1.25rem;
+        }
+        label {
+            display: block;
+            font-size: 0.8rem;
+            font-weight: 500;
+            color: #94a3b8;
+            margin-bottom: 0.35rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        input {
+            width: 100%;
+            padding: 0.7rem 0.9rem;
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid rgba(99, 102, 241, 0.2);
+            border-radius: 8px;
+            color: #e2e8f0;
+            font-size: 0.95rem;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        input:focus {
+            outline: none;
+            border-color: #6366f1;
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+        }
+        input::placeholder {
+            color: #475569;
+        }
+        .amount-display {
+            text-align: center;
+            margin: 1.5rem 0;
+            padding: 1rem;
+            background: rgba(99, 102, 241, 0.08);
+            border-radius: 10px;
+            border: 1px solid rgba(99, 102, 241, 0.15);
+        }
+        .amount-display .value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #818cf8;
+        }
+        .amount-display .currency {
+            font-size: 1rem;
+            color: #94a3b8;
+            margin-left: 0.25rem;
+        }
+        .btn {
+            width: 100%;
+            padding: 0.85rem;
+            background: linear-gradient(135deg, #6366f1, #4f46e5);
+            color: #fff;
+            border: none;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.15s, box-shadow 0.15s;
+            margin-top: 0.5rem;
+        }
+        .btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 8px 25px rgba(99, 102, 241, 0.35);
+        }
+        .btn:active {
+            transform: translateY(0);
+        }
+        .secure-badge {
+            text-align: center;
+            margin-top: 1rem;
+            color: #64748b;
+            font-size: 0.75rem;
+        }
+        .secure-badge svg {
+            width: 14px;
+            height: 14px;
+            vertical-align: middle;
+            margin-right: 0.25rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <div class="logo">
+            <span>BT iPay</span>
+            <small>Banca Transilvania</small>
+        </div>
+
+        <h1>Plată online</h1>
+
+        @if (session('error'))
+            <div class="alert alert-error">
+                {{ session('error') }}
+            </div>
+        @endif
+
+        @if ($amount > 0)
+            <div class="amount-display">
+                <span class="value">{{ number_format($amount / 100, 2, ',', '.') }}</span>
+                <span class="currency">RON</span>
+            </div>
+        @endif
+
+        <form method="POST" action="{{ route('btipay.process') }}">
+            @csrf
+
+            <input type="hidden" name="order_number" value="{{ $orderNumber }}">
+
+            @if ($amount > 0)
+                <input type="hidden" name="amount" value="{{ $amount }}">
+            @else
+                <div class="form-group">
+                    <label for="amount">Sumă (bani)</label>
+                    <input type="number" id="amount" name="amount" min="1"
+                           placeholder="ex: 1500 = 15.00 RON" required
+                           value="{{ old('amount') }}">
+                </div>
+            @endif
+
+            @if ($description)
+                <input type="hidden" name="description" value="{{ $description }}">
+            @else
+                <div class="form-group">
+                    <label for="description">Descriere</label>
+                    <input type="text" id="description" name="description" maxlength="512"
+                           placeholder="Descriere comandă"
+                           value="{{ old('description') }}">
+                </div>
+            @endif
+
+            <div class="form-group">
+                <label for="email">Email</label>
+                <input type="email" id="email" name="email" maxlength="254"
+                       placeholder="client@email.com"
+                       value="{{ old('email', $email) }}">
+            </div>
+
+            <div class="form-group">
+                <label for="phone">Telefon</label>
+                <input type="text" id="phone" name="phone" maxlength="15"
+                       placeholder="40740123456"
+                       value="{{ old('phone', $phone) }}">
+            </div>
+
+            <button type="submit" class="btn">
+                Plătește acum
+            </button>
+
+            <div class="secure-badge">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                    <path fill-rule="evenodd" d="M12 1.5a5.25 5.25 0 00-5.25 5.25v3a3 3 0 00-3 3v6.75a3 3 0 003 3h10.5a3 3 0 003-3v-6.75a3 3 0 00-3-3v-3c0-2.9-2.35-5.25-5.25-5.25zm3.75 8.25v-3a3.75 3.75 0 10-7.5 0v3h7.5z" clip-rule="evenodd"/>
+                </svg>
+                Plată securizată prin Banca Transilvania
+            </div>
+        </form>
+    </div>
+</body>
+</html>

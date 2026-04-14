@@ -1,0 +1,44 @@
+<?php
+
+use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\BtIpayController;
+
+/*
+|--------------------------------------------------------------------------
+| BT iPay Payment Routes
+|--------------------------------------------------------------------------
+|
+| Routes for processing payments via BT iPay.
+|
+| Include this file in routes/web.php:
+|   require __DIR__.'/btipay.php';
+|
+| Or in bootstrap/app.php (Laravel 11+):
+|   ->withRouting(
+|       web: __DIR__.'/../routes/web.php',
+|       then: function () {
+|           require base_path('routes/btipay.php');
+|       },
+|   )
+|
+| Available routes:
+|   GET  /btipay/pay     - Payment form
+|   POST /btipay/process - Process payment (redirect to BT iPay)
+|   GET  /btipay/finish  - Finish page (return URL from BT iPay)
+|
+*/
+
+Route::prefix('btipay')->name('btipay.')->middleware('web')->group(function () {
+
+    // Payment form
+    Route::get('/pay', [BtIpayController::class, 'pay'])
+        ->name('pay');
+
+    // Process payment - send request to BT iPay
+    Route::post('/process', [BtIpayController::class, 'process'])
+        ->name('process');
+
+    // Finish page - customer is redirected here by BT iPay
+    Route::get('/finish', [BtIpayController::class, 'finish'])
+        ->name('finish');
+});

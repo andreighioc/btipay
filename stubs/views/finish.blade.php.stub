@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ $success ? 'Plată reușită' : 'Plată eșuată' }} - BT iPay</title>
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+            color: #e2e8f0;
+        }
+        .card {
+            background: rgba(30, 41, 59, 0.8);
+            backdrop-filter: blur(12px);
+            border-radius: 16px;
+            padding: 2.5rem;
+            width: 100%;
+            max-width: 520px;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.4);
+            text-align: center;
+        }
+        .card.success { border: 1px solid rgba(34, 197, 94, 0.3); }
+        .card.error   { border: 1px solid rgba(239, 68, 68, 0.3); }
+
+        .icon {
+            width: 72px;
+            height: 72px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1.25rem;
+        }
+        .icon.success {
+            background: rgba(34, 197, 94, 0.12);
+        }
+        .icon.error {
+            background: rgba(239, 68, 68, 0.12);
+        }
+        .icon svg {
+            width: 36px;
+            height: 36px;
+        }
+        .icon.success svg { color: #22c55e; }
+        .icon.error svg   { color: #ef4444; }
+
+        h1 {
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+        }
+        h1.success { color: #4ade80; }
+        h1.error   { color: #f87171; }
+
+        .message {
+            color: #94a3b8;
+            margin-bottom: 1.5rem;
+            font-size: 0.95rem;
+            line-height: 1.6;
+        }
+
+        .details {
+            background: rgba(15, 23, 42, 0.5);
+            border-radius: 10px;
+            padding: 1.25rem;
+            margin-bottom: 1.5rem;
+            text-align: left;
+        }
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid rgba(99, 102, 241, 0.08);
+        }
+        .detail-row:last-child { border-bottom: none; }
+        .detail-label {
+            color: #64748b;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        .detail-value {
+            color: #e2e8f0;
+            font-weight: 500;
+            font-size: 0.9rem;
+        }
+        .amount-highlight {
+            color: #818cf8;
+            font-size: 1.1rem;
+            font-weight: 700;
+        }
+
+        .warning-box {
+            background: rgba(245, 158, 11, 0.1);
+            border: 1px solid rgba(245, 158, 11, 0.25);
+            border-radius: 8px;
+            padding: 0.75rem;
+            margin-bottom: 1.5rem;
+            color: #fbbf24;
+            font-size: 0.8rem;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 0.75rem 2rem;
+            border-radius: 10px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            text-decoration: none;
+            cursor: pointer;
+            transition: transform 0.15s, box-shadow 0.15s;
+            border: none;
+        }
+        .btn:hover {
+            transform: translateY(-1px);
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #6366f1, #4f46e5);
+            color: #fff;
+        }
+        .btn-primary:hover {
+            box-shadow: 0 8px 25px rgba(99, 102, 241, 0.35);
+        }
+        .btn-ghost {
+            background: transparent;
+            border: 1px solid rgba(99, 102, 241, 0.3);
+            color: #818cf8;
+            margin-left: 0.5rem;
+        }
+        .btn-ghost:hover {
+            background: rgba(99, 102, 241, 0.08);
+        }
+
+        .actions {
+            display: flex;
+            justify-content: center;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+        }
+    </style>
+</head>
+<body>
+    <div class="card {{ $success ? 'success' : 'error' }}">
+
+        {{-- Icon --}}
+        <div class="icon {{ $success ? 'success' : 'error' }}">
+            @if ($success)
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                    <path fill-rule="evenodd" d="M2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12zm13.36-1.814a.75.75 0 10-1.22-.872l-3.236 4.53L9.53 12.22a.75.75 0 00-1.06 1.06l2.25 2.25a.75.75 0 001.14-.094l3.75-5.25z" clip-rule="evenodd"/>
+                </svg>
+            @else
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                    <path fill-rule="evenodd" d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25zm-1.72 6.97a.75.75 0 10-1.06 1.06L10.94 12l-1.72 1.72a.75.75 0 101.06 1.06L12 13.06l1.72 1.72a.75.75 0 101.06-1.06L13.06 12l1.72-1.72a.75.75 0 10-1.06-1.06L12 10.94l-1.72-1.72z" clip-rule="evenodd"/>
+                </svg>
+            @endif
+        </div>
+
+        {{-- Title --}}
+        <h1 class="{{ $success ? 'success' : 'error' }}">
+            {{ $success ? 'Plată reușită!' : 'Plată eșuată' }}
+        </h1>
+
+        {{-- Message --}}
+        <p class="message">{{ $message }}</p>
+
+        @if ($success)
+            {{-- Payment details --}}
+            <div class="details">
+                @if (!empty($orderNumber))
+                    <div class="detail-row">
+                        <span class="detail-label">Nr. comandă</span>
+                        <span class="detail-value">{{ $orderNumber }}</span>
+                    </div>
+                @endif
+
+                @if (!empty($amount))
+                    <div class="detail-row">
+                        <span class="detail-label">Sumă</span>
+                        <span class="detail-value amount-highlight">
+                            {{ number_format($amount, 2, ',', '.') }}
+                            {{ $currency == '946' ? 'RON' : ($currency == '978' ? 'EUR' : 'USD') }}
+                        </span>
+                    </div>
+                @endif
+
+                @if (!empty($maskedPan))
+                    <div class="detail-row">
+                        <span class="detail-label">Card</span>
+                        <span class="detail-value">{{ $maskedPan }}</span>
+                    </div>
+                @endif
+
+                @if (!empty($approvalCode))
+                    <div class="detail-row">
+                        <span class="detail-label">Cod aprobare</span>
+                        <span class="detail-value">{{ $approvalCode }}</span>
+                    </div>
+                @endif
+
+                @if (!empty($rrn))
+                    <div class="detail-row">
+                        <span class="detail-label">Referință (RRN)</span>
+                        <span class="detail-value">{{ $rrn }}</span>
+                    </div>
+                @endif
+
+                @if (!empty($date))
+                    <div class="detail-row">
+                        <span class="detail-label">Data</span>
+                        <span class="detail-value">{{ $date }}</span>
+                    </div>
+                @endif
+            </div>
+        @else
+            {{-- Retry warning for specific action codes --}}
+            @if (isset($canRetry) && !$canRetry)
+                <div class="warning-box">
+                    ⚠️ Nu reîncercați tranzacția cu același card.
+                    Contactați banca emitentă sau folosiți un alt card.
+                </div>
+            @endif
+        @endif
+
+        {{-- Actions --}}
+        <div class="actions">
+            <a href="{{ url('/') }}" class="btn btn-primary">
+                Înapoi la site
+            </a>
+            @if (!$success && (!isset($canRetry) || $canRetry))
+                <a href="{{ route('btipay.pay') }}" class="btn btn-ghost">
+                    Reîncearcă plata
+                </a>
+            @endif
+        </div>
+    </div>
+</body>
+</html>
