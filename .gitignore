@@ -1,0 +1,43 @@
+# ========================
+# Dependențe
+# ========================
+/vendor/
+composer.lock
+
+# ========================
+# Testare (PHPUnit / Pest)
+# ========================
+.phpunit.result.cache
+.phpunit.cache/
+/build/
+/coverage/
+/reports/
+phpunit.xml
+
+# ========================
+# Frontend / Asset-uri (Opțional)
+# ========================
+# Folosește-le doar dacă pachetul tău are Vue/React/Tailwind etc.
+/node_modules/
+/public/build/
+npm-debug.log
+yarn-error.log
+
+# ========================
+# IDE-uri și Editoare
+# ========================
+/.idea/
+.vscode/
+*.swp
+*.swo
+
+# ========================
+# Fișiere de Sistem (OS)
+# ========================
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db

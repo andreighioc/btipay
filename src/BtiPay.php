@@ -11,14 +11,20 @@ use AndreiGhioc\BtiPay\Responses\RefundResponse;
 use AndreiGhioc\BtiPay\Responses\OrderStatusResponse;
 use AndreiGhioc\BtiPay\Responses\FinishedPaymentInfoResponse;
 use AndreiGhioc\BtiPay\Exceptions\BtiPayValidationException;
+use AndreiGhioc\BtiPay\Exceptions\IncompleteBtiPayConfigurationException;
+use AndreiGhioc\BtiPay\Contracts\BtiPayGatewayInterface;
 
-class BtiPay
+class BtiPay implements BtiPayGatewayInterface
 {
     protected BtiPayClient $client;
     protected array $config;
 
     public function __construct(array $config = [])
     {
+        if (empty($config['username']) || empty($config['password'])) {
+            throw new IncompleteBtiPayConfigurationException('BT iPay Username and Password must be provided correctly in the config/env.');
+        }
+
         $this->config = $config;
         $this->client = new BtiPayClient(
             $config['username'] ?? '',

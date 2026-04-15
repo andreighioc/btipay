@@ -3,7 +3,6 @@
 namespace AndreiGhioc\BtiPay\Facades;
 
 use Illuminate\Support\Facades\Facade;
-use AndreiGhioc\BtiPay\BtiPay;
 
 /**
  * @method static \AndreiGhioc\BtiPay\Responses\RegisterResponse register(array $params)

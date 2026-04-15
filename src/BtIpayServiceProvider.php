@@ -8,18 +8,20 @@ class BtiPayServiceProvider extends ServiceProvider
 {
     public function register()
     {
-        // Unește configurația default cu cea a utilizatorului
+        // Merge default configuration with user's configuration
         $this->mergeConfigFrom(__DIR__.'/../config/btipay.php', 'btipay');
 
-        // Înregistrează clasa principală în Container
-        $this->app->singleton('btipay', function ($app) {
+        // Register the main class in the Container through its Interface
+        $this->app->singleton(\AndreiGhioc\BtiPay\Contracts\BtiPayGatewayInterface::class, function ($app) {
             return new BtiPay(config('btipay'));
         });
+        
+        $this->app->alias(\AndreiGhioc\BtiPay\Contracts\BtiPayGatewayInterface::class, 'btipay');
     }
 
     public function boot()
     {
-        // Permite publicarea configurației: php artisan vendor:publish
+        // Allow publishing the configuration file: php artisan vendor:publish
         if ($this->app->runningInConsole()) {
             $this->publishes([
                 __DIR__.'/../config/btipay.php' => config_path('btipay.php'),

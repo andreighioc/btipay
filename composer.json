@@ -14,19 +14,26 @@
     "license": "MIT",
     "authors": [
         {
-            "name": "BT iPay Developer",
-            "email": "dev@example.com"
+            "name": "Andrei Ghioc",
+            "email": "contact@andreighioc.ro"
         }
     ],
     "require": {
-        "php": "^8.1",
+        "php": "^8.2",
         "illuminate/support": "^10.0|^11.0|^12.0|^13.0",
         "illuminate/http": "^10.0|^11.0|^12.0|^13.0",
         "guzzlehttp/guzzle": "^7.0"
     },
     "require-dev": {
+        "larastan/larastan": "^2.9|^3.0",
+        "laravel/pint": "^1.15",
         "orchestra/testbench": "^8.0|^9.0|^10.0|^11.0",
         "phpunit/phpunit": "^10.0|^11.0|^12.0"
+    },
+    "scripts": {
+        "test": "vendor/bin/phpunit",
+        "format": "vendor/bin/pint",
+        "analyse": "vendor/bin/phpstan analyse"
     },
     "autoload": {
         "psr-4": {

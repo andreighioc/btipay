@@ -2,21 +2,22 @@
 
 namespace AndreiGhioc\BtiPay;
 
-use GuzzleHttp\Client;
-use GuzzleHttp\Exception\GuzzleException;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Http\Client\RequestException;
+use Illuminate\Http\Client\ConnectionException;
 use AndreiGhioc\BtiPay\Exceptions\BtiPayException;
 use AndreiGhioc\BtiPay\Exceptions\BtiPayAuthenticationException;
 use AndreiGhioc\BtiPay\Exceptions\BtiPayConnectionException;
 
 class BtiPayClient
 {
-    protected Client $httpClient;
     protected string $username;
     protected string $password;
     protected string $environment;
     protected string $authMethod;
     protected string $baseUrl;
+    protected array  $httpConfig;
 
     /**
      * Base URLs for each environment.
@@ -49,16 +50,15 @@ class BtiPayClient
         $this->environment = $environment;
         $this->authMethod  = $authMethod;
 
-        $customBaseUrls = config('BtiPay.base_urls', []);
+        $customBaseUrls = config('btipay.base_urls', []);
         $baseUrls = array_merge(self::BASE_URLS, $customBaseUrls);
         $this->baseUrl = $baseUrls[$environment] ?? self::BASE_URLS['sandbox'];
 
-        $this->httpClient = new Client([
-            'base_uri'        => $this->baseUrl,
-            'timeout'         => $httpConfig['timeout'] ?? 30,
-            'connect_timeout' => $httpConfig['connect_timeout'] ?? 10,
-            'verify'          => $httpConfig['verify_ssl'] ?? true,
-        ]);
+        $this->httpConfig = array_merge([
+            'timeout'         => 30,
+            'connect_timeout' => 10,
+            'verify'          => true,
+        ], $httpConfig);
     }
 
     /**
@@ -75,135 +75,121 @@ class BtiPayClient
      */
     public function post(string $endpoint, array $params = [], bool $requiresAuth = true): array
     {
-        $options = [
-            'headers' => [
-                'Accept' => 'application/json',
-            ],
-        ];
+        $request = Http::baseUrl($this->baseUrl)
+            ->withOptions($this->httpConfig)
+            ->acceptJson()
+            ->asForm();
 
         if ($requiresAuth) {
             if ($this->authMethod === 'header') {
-                // Recommended: Basic Auth header
-                $credentials = base64_encode($this->username . ':' . $this->password);
-                $options['headers']['Authorization'] = 'Basic ' . $credentials;
+                $request->withBasicAuth($this->username, $this->password);
             } else {
-                // Legacy: add credentials in body
                 $params['userName'] = $this->username;
                 $params['password'] = $this->password;
             }
         }
 
-        $options['form_params'] = $params;
-
         $this->logRequest($endpoint, $params);
 
         try {
-            $response = $this->httpClient->post($endpoint, $options);
-            $body = $response->getBody()->getContents();
-            $decoded = json_decode($body, true);
+            $response = $request->post($endpoint, $params);
 
-            if (json_last_error() !== JSON_ERROR_NONE) {
+            if ($response->status() === 401 || $response->status() === 403) {
+                // iPay specific access denied check
+                throw new BtiPayAuthenticationException(
+                    'Authentication failed: access denied (401/403) - ' . $response->body(),
+                    $response->status()
+                );
+            }
+
+            // Throw on 500s or standard 400s
+            if ($response->serverError() || $response->clientError()) {
+                $response->throw();
+            }
+
+            $decoded = $response->json();
+
+            if (!is_array($decoded)) {
                 throw new BtiPayException(
-                    'Invalid JSON response from BT iPay API: ' . json_last_error_msg()
+                    'Invalid or malformed JSON response from BT iPay API: ' . $response->body()
                 );
             }
 
             $this->logResponse($endpoint, $decoded);
 
             return $decoded;
-        } catch (GuzzleException $e) {
+        } catch (RequestException $e) {
             $this->logError($endpoint, $e->getMessage());
-
-            if ($e->getCode() === 401 || $e->getCode() === 403) {
-                throw new BtiPayAuthenticationException(
-                    'Authentication failed: ' . $e->getMessage(),
-                    $e->getCode(),
-                    $e
-                );
-            }
-
+            throw new BtiPayConnectionException(
+                'HTTP error from BT iPay API: ' . $e->getMessage(),
+                $e->getCode() ?: 500,
+                $e
+            );
+        } catch (ConnectionException $e) {
+            $this->logError($endpoint, $e->getMessage());
             throw new BtiPayConnectionException(
                 'Connection error to BT iPay API: ' . $e->getMessage(),
-                $e->getCode(),
+                $e->getCode() ?: 500,
                 $e
             );
         }
     }
 
-    /**
-     * Get the base URL for the current environment.
-     */
     public function getBaseUrl(): string
     {
         return $this->baseUrl;
     }
 
-    /**
-     * Get the current environment.
-     */
     public function getEnvironment(): string
     {
         return $this->environment;
     }
 
-    /**
-     * Check if we are in sandbox mode.
-     */
     public function isSandbox(): bool
     {
         return $this->environment === 'sandbox';
     }
 
-    /**
-     * Log the API request if logging is enabled.
-     */
     protected function logRequest(string $endpoint, array $params): void
     {
-        if (! config('BtiPay.logging.enabled', false)) {
+        if (! config('btipay.logging', false)) {
             return;
         }
 
-        // Mask sensitive data before logging
         $safeParams = $params;
-        foreach (['userName', 'password'] as $key) {
+        foreach (['userName', 'password', 'pan', 'cvv'] as $key) {
             if (isset($safeParams[$key])) {
                 $safeParams[$key] = '***';
             }
         }
 
-        Log::channel(config('BtiPay.logging.channel', 'stack'))
+        Log::channel(config('btipay.log_channel', 'stack'))
             ->info('BT iPay Request', [
                 'endpoint' => $endpoint,
                 'params'   => $safeParams,
             ]);
     }
 
-    /**
-     * Log the API response if logging is enabled.
-     */
     protected function logResponse(string $endpoint, array $response): void
     {
-        if (! config('BtiPay.logging.enabled', false)) {
+        if (! config('btipay.logging', false)) {
             return;
         }
 
-        Log::channel(config('BtiPay.logging.channel', 'stack'))
+        Log::channel(config('btipay.log_channel', 'stack'))
             ->info('BT iPay Response', [
                 'endpoint' => $endpoint,
                 'response' => $response,
             ]);
     }
 
-    /**
-     * Log API error if logging is enabled.
-     */
     protected function logError(string $endpoint, string $message): void
     {
-        if (! config('BtiPay.logging.enabled', false)) {
+        if (! config('btipay.logging', false)) {
             return;
         }
 
-        Log::channel(config('BtiPay.logging.channel', 'stack'))
+        Log::channel(config('btipay.log_channel', 'stack'))
             ->error('BT iPay Error', [
                 'endpoint' => $endpoint,
                 'message'  => $message,
